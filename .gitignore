@@ -11,6 +11,7 @@
 *.ico
 *.png
 *.dcf
+*.tif
 .Rproj.user
 .+
 man/*

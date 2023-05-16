@@ -1,0 +1,17 @@
+# rdroot #
+# getkeep #
+# putrdatv #
+# getrdatv #
+# greprdatv #
+# descrdatv #
+# prependrdatv #
+# getv #
+# rddelim #
+# putt #
+# gett #
+# putrd #
+# getrd #
+# getgd #
+# ddv #
+# ddv1 #
+# dirrd #
