@@ -1,4 +1,5 @@
-x1 <- c( 
+library(magrittr)
+c( 
 'colorspace',
 'data.table',
 'devtools',   
@@ -16,6 +17,8 @@ x1 <- c(
 'urca',       
 'vars',       
 'zoo'       
-)
-x2 <- sort(unique(x1))
-x3 <- suppressPackageStartupMessages(sapply(x2,library,character.only=T))
+)%>%
+  unique(.)%>%
+  sort(.)%>%
+  sapply(.,library,character.only=T)%>%
+  suppressPackageStartupMessages(.)

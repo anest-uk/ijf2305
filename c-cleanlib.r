@@ -699,6 +699,78 @@ function(
     setnames(.,old='rn',new='idhash.selldate')
   x1
 }
+f230516a <-
+function(
+    soar=x121[nchar(rcx)==6][,rc6:=rcx],
+    geo=geo1,
+    xso=eennx,
+    maxrad=50,
+    maxpeer=50
+) {
+  x1 <- #distance rank
+    xso[geo[,.(rc6)],.(rc6,eex,nnx,one=1),on=c(rc='rc6')]%>%
+    .[.,mult='all',on=c(one='one'),allow=T]%>%
+    .[,.(rc6,other=i.rc6,r=round(sqrt((eex-i.eex)^2+(nnx-i.nnx)^2)/1000,2))]%>%
+    .[r<maxrad]%>%
+    .[order(rc6,r)]%>%
+    .[,data.table(.SD,dr=1:.N),rc6]
+  x0 <- soar[nchar(rcx)==6]%>%
+    .[,rc6:=rcx]
+  ll <- list(NULL)
+  for(i in 3:maxpeer) {
+    x2 <- x1[dr<=i]
+    ll[[i]] <- 
+      x0%>%
+      .[x1[dr<=i],on=c(rc6='other'),allow=T,nomatch=NULL]%>%
+      .[order(i.rc6,r),.(rc6=i.rc6,other=rc6,r,nid,ppm2)]%>%
+      .[,.(other,lrnk=rank(ppm2),nid,ppm2),.(rc6)]%>%
+      .[order(lrnk),.(rc6,other,arnk=(lrnk-1)/(i-1),nid,ppm2,peers=i)]%>%
+      .[rc6==other]
+  }
+  x3 <- #orthogonalise vs national rank
+    rbindlist(ll)%>%
+    .[,.(arnk=mean(arnk),nid=nid[1]),.(rc6)]%>%
+    .[x0[,.(rc6,nrnk=(rank(ppm2)-1)/(.N-1),nid,pv,m2,ppm2)],on=c(rc6='rc6'),nomatch=NULL]%>%
+    .[,.(rc6,nid,pv,m2,ppm2=round(ppm2),des=residuals(lm(arnk~nrnk,.)))]%>%
+    .[order(des)]
+  x3
+}
+f230516b <-
+function(
+    geo,
+    des,
+    pca
+) { 
+  sfInit(par=T,cpus=ncpus())
+  x1 <- 
+    sfLapply(
+      as.list(2:9), #nx to split
+      f230417c,
+      geo=geo1,
+      des=des,
+      pca=x133
+    )
+  sfStop()
+  xbeta <- as.list(NULL)
+  xgeo <- as.list(NULL)
+  for(i in seq_along(x1)) {
+    xbeta[[i]] <- x1[[i]][['beta']][order(des)][,desx:=-2:2]
+    xgeo[[i]] <- x1[[i]][['geo']]
+  }
+  x2 <- rbindlist(xgeo) 
+  x3 <- rbind(
+    rbindlist(xbeta)[,.(b2,b3,nx,des,desx,ppm2)]#,
+    #x142$beta[,.(b2,b3,nx,des=0,desx=0,ppm2=NA)]
+  )[,col:=reorder(as.factor(desx),-desx)]%>%
+    .[,nxfac:=as.factor(nx)]%>%
+    .[order(nx,desx)]%>%
+    .[,unit:=as.factor(nx)]
+  x4 <- list(
+    geo=x2,
+    beta=x3  
+  )
+  x4
+}
 grepstring <-
 function(x=regpcode(metro()),dollar=F,caret=T) {
   if(caret) x <- paste0('^',x)

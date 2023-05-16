@@ -48,7 +48,7 @@ x103a <- #solve and reprice
 x103 <- x103a[c('ses','geo')] #x103a is large with BSO - just for MSE
 
 #---------------------------------------------------------------------prep - DRC
-dfnx1 <- #DRCd
+dfnx1 <- #DRC
   c("1994-12-31", "1996-07-14", "1997-01-17", "1997-06-23", "1998-01-27", 
     "1998-10-22", "1999-08-06", "1999-12-03", "2000-01-31", "2001-10-12", 
     "2002-06-25", "2002-10-06", "2003-02-10", "2003-05-22", "2003-08-09", 
@@ -106,8 +106,15 @@ x133 <- #pca
   dcast(.,date~lab,value.var='xdot')%>%
   pcaest(.)
 #------------------------------------------------------------solution3 - DTC/DRC
-source('geo1.r') #assign geo<-drc
-geo1 <- data.table(geo)
+breaks <- c(10, 541, 824, 1272, 1631, 2024, 2113, 2189, 2253) #rc6(ppm2) bins
+geo1 <- x121%>% #encoded geo which is ordered and has right end-breaks
+  .[nchar(rcx)==6]%>%
+  .[order(ppm2)]%>%
+  .[,.(
+    rcx,
+    qai=1:.N,
+    nx=apply(sapply(breaks,`<`,1:.N),1,sum)+1
+    )]
 x141a <- #DTC solve x(dtc)
   f230311b(#//parallel
     geo=geo1[,.(rc9=rc6,nx,qai,lab)],
@@ -129,49 +136,18 @@ f230506c( #display panel
   pcax=x133
 )
 #----------------------------------------------------------------solution4 - DES
-# f230414aFun( #DES
-#   soar=x121[nchar(rcx)==6][,rc6:=rcx],
-#   geo=geo1,
-#   xso=f201203fd[nchar(rc)==6,.(rc6=rc,eex,nnx)], #coordinates
-#   nn=NULL
-# )
-# des1 <- data.frame(f230414ad)
-# dump('des1','des1')
-#getgd(c('x133','x142'))
-# getgd('x133')
-# save.image(file='DES.rdata')#<<<<<<<<<<<<<<<<<<<<<
-# load(file='DES.rdata')
-rmifgl('des1')
-source('des1')
-des=data.table(des1)[,des:=des/1e6]#price residual/relative to neighbours (<50km)
-sfInit(par=T,cpus=ncpus())
-x1 <- 
-  sfLapply(
-    as.list(2:9), #nx to split
-    f230417c,
+x150 <- f230516a(
+    soar=x121,
     geo=geo1,
-    des=des,
-    pca=x133
-  )
-sfStop()
-xbeta <- as.list(NULL)
-xgeo <- as.list(NULL)
-for(i in seq_along(x1)) {
-  xbeta[[i]] <- x1[[i]][['beta']][order(des)][,desx:=-2:2]
-  xgeo[[i]] <- x1[[i]][['geo']]
-}
-x2 <- rbindlist(xgeo) #split geo for solve and MSE not done, overlap exists
-x3 <- rbind(
-  rbindlist(xbeta)[,.(b2,b3,nx,des,desx,ppm2)],
-  x142$beta[,.(b2,b3,nx,des=0,desx=0,ppm2=NA)]
-)[,col:=reorder(as.factor(desx),-desx)]%>%
-  .[,nxfac:=as.factor(nx)]%>%
-  .[order(nx,desx)]%>%
-  .[,unit:=as.factor(nx)]
-x151 <- list(
-  geo=x2,
-  beta=x3  
+    xso=eennx
 )
+x151 <- #returns list(geo,beta) for des-split
+  f230516b(
+    geo=geo1,
+    des=x150,
+    pca=x133
+)
+
 #----------------------------------------------------------------------------VAR
 x2 <- x133%>%
   pcaz(.)%>%
@@ -202,7 +178,7 @@ rm('geo')
 source('geo2.r')
 x1 <- data.table(geo)[,.(rc6,NUTS=ltr)]
 x1[,sum(duplicated(rc6))/.N] #.0745 overlaps in rc6-nuts relation 
-geo2 <- x1[x1[,.(rc6=unique(rc6))],on=c(rc6='rc6'),mult='first']%>%#duplicates resolved randomly (with no further digging)
+geo2 <- x1[x1[,.(rc6=unique(rc6))],on=c(rc6='rc6'),mult='first']%>%#duplicates are resolved randomly
   .[order(NUTS)]%>%
   .[,.(rc9=rc6,nx=as.integer(as.factor(NUTS)),lab=NUTS)]%>%
   .[geo1[,.(rc9=rc6)],on=c(rc9='rc9')]
@@ -241,4 +217,4 @@ nn <- c(
   sol4='x151',
   var='x161'
 )
-save(list=nn,file='xnnn.rdata') #for tab, graphic, and possible debug of this script
+save(list=nn,file='xnnn.rdata') #for tab, graphic, diagnostice on this script
