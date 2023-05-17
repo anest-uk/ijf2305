@@ -11,8 +11,6 @@ nn <- c( #prepped in 'public update'
   sol4='x151',
   var='x161'
 )
-# load('xnnn.rdata')
-# stopifnot(all(sapply(nn,exists)))
 
 labelsize <- 2.5
 x1 <- x103$ses$soar%>%
@@ -63,9 +61,8 @@ x <- ggplot(x3[rc9%in%rcx1],aes(date1,x,color=col,label=leg))+
     axis.text=element_text(size=6,face = "plain"),
     legend.position='none')+
   coord_cartesian(xlim=c(as.Date(c('1994-12-31','2024-12-31'))),ylim = c(-.1,2.1))
-x
+print(x)
 ggsave('rplot001.tif', x, device = "tiff", dpi =1000, width=3543, height=2400, units='px')
-
 
 #2 rc3 scatter
 x0a <- x0$geo[x103$ses$estdt,on=c(nx='nx')][x103$ses$soar[,.(ppm2=sum(pv)/sum(m2)),.(rc3=substr(rc9,1,3))],on=c(rc9='rc3')][]
@@ -274,7 +271,7 @@ x <- ggplot(x9a,aes(ii,x,color=col,label=leg))+#,label=leg
     axis.text=element_text(size=6,face = "plain"),
     legend.position='none')+
   coord_cartesian(xlim=c(0,44),ylim = c(-.1,2.2))
-x
+print(x)
 ggsave('rplot006.tif', x, device = "tiff", dpi =1000, width=3543, height=3000, units='px')
 
 #hedgehog 7
@@ -319,7 +316,7 @@ x <- x3+
     axis.line.x.bottom=element_line(size=.1),
     axis.text=element_text(size=6,face = "plain"),
     legend.position='none')#+
-x
+print(x)
 ggsave('rplot007.tif', x, device = "tiff", dpi =1000, width=3543, height=2400, units='px')
 
 #var 8
@@ -352,6 +349,6 @@ x <- ggplot(x5,aes(ii,z))+
     axis.line.x.bottom=element_line(size=.1),
     axis.text=element_text(size=6,face = "plain"),
     legend.position='none')
-x
+print(x)
 ggsave('rplot008.tif', x, device = "tiff", dpi =1000, width=3543, height=2400, units='px')
 

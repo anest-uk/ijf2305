@@ -11,11 +11,8 @@ nn <- c( #prepped in 'public update'
   sol4='x151',
   var='x161'
 )
-# load('xnnn.rdata')
-# stopifnot(all(sapply(nn,exists)))
 
 #------------------table 1 regstats, annual
-#getgd(c('x103','x121'))
 arealabel <- pxmoreg()[,.(rc,area,name)][rc=='WC-',name:='Central London'][rc=='N--',name:='North London'][area=='TS',name:='Teesside']
 x10 <- data.table(seq=1:10,rc3=c('TS-','L--','S--','LS-','M--','B--','BS-','AL-','N--','WC-'))
 x12 <- x103$ses$estdt[x10[,.(rc3)],on=c(rc3='rc3')]%>%
@@ -51,7 +48,6 @@ cor(x13[,.(beta,dd,mean)])
 #------------------end table 1
 
 #------------------table 2 drc per period report
-#getgd(c('x132','x133'))
 names(x132) #FIS = "geo" "ses" "bso" 
 x21 <- x132 #DRC solve f230311b
 x22 <- x132$ses$estdt
@@ -59,16 +55,6 @@ x23 <- dcast(x22,date1~rc3,value.var='xdot')
 dates <- x22[,(sort(unique(c(date0,date1))))]
 days <- as.numeric(diff(dates))
 x24 <- x133 #pca
-
-if(F) {
-#getgd(c('f230311ad','f230312ad')) #report on b1	b2	b3	theta	ppm2 for cardinals, where ppm2 comes from sol1 and others from pca/drc=sol2
-# x1 <- f230311ad #FIS = "geo" "ses" "bso" 
-# x2 <- x1$ses$estdt
-# x3 <- dcast(x2,date1~rc3,value.var='xdot')
-# dates <- x2[,(sort(unique(c(date0,date1))))]
-# days <- as.numeric(diff(dates))
-# x24 <- f230312ad$pca
-}
 dates <- c(as.Date('1994-12-31'),x24$date)
 days <- as.numeric(diff(dates))
 x23 <- x24$x
@@ -87,9 +73,7 @@ for(i in 1:nrow(x23)) {
 }
 x210 <- data.table(days=days,rbarsq=x29,r=rraw)#,rcen=rcen
 x211 <- cbind(data.table(end=dates[-1]),round(x210,2))
-#x210[,.(rrawbar=mean(rraw))]#rcenbar=mean(rcen),
-#x210[,.(rrawsd=sd(rraw))]#rcensd=sd(rcen),
-x2111 <- as.data.table(lapply(x211,as.character))
+2111 <- as.data.table(lapply(x211,as.character))
 x2112 <- as.data.table(as.list(c('mean',round(apply(x211[,-1],2,mean),c(0,2,2)))))
 x2113 <- cbind(x2111[1:14],x2111[15:28],rbind(x2111[29:41],x2112,use.names=F))
 print('table 2---------------drc per period')
@@ -98,8 +82,6 @@ fwrite(x2113,'table2.csv')
 #------------------end table 2
 
 #table 3------------------------------------------------------------------------
-#getgd('f230423ad') #soar from solution 1
-#getgd(c('x121','x142'))
 soar <- x103$ses$soar
 soar <- x121
 x30 <- data.table(seq=labxnnn(1:10),rc3=c('TS-','L--','S--','LS-','M--','B--','BS-','AL-','N--','WC-'))
@@ -108,7 +90,6 @@ x32 <- setnames(data.table(x25,keep.rownames=T),c('rc3',paste0('b',1:3)))%>%
   .[theta<(-pi/2),theta:=theta+2*pi]%>% #unwrap not working
   x30[.,on=c(seq='rc3')]%>%
   .[,.(rc3,b1,b2,b3,theta)]
-#x13 <- f230423ad[,.(rcx,ppm2=round(ppm2))][x32,on=c(rcx='rc3')][,.(rcx,b1=round(b1,3),b2=round(b2,3),b3=round(b3,3),theta=round(theta,3),ppm2=round(ppm2,-1))]
 x33 <- soar[,.(rcx,ppm2=round(ppm2))][x32,on=c(rcx='rc3')][,.(rcx,b1=round(b1,3),b2=round(b2,3),b3=round(b3,3),theta=round(theta,3),ppm2=round(ppm2,-1))]
 print('table 3---------------rc3 beta and ppm2')
 print(x33)
@@ -118,10 +99,8 @@ fwrite(x33,'table3.csv')
 #------------------end table 3
 
 #table 4------------------------------------------------------------------------
-#getgd('x141')
 geo <- x141$geo
 estdt <- x141$ses$stat[type=='all'][x141$ses$estdt,on=c(nx='nx')]
-
 x41 <- soar[geo,on=c(rcx='rc9')][,.(ppm2=sum(pv)/sum(m2),ppm2min=min(ppm2),ppm2max=max(ppm2),nid=sum(nid)),nx][,nidfrac:=round(nid/sum(nid),4)][]
 x42 <- estdt[,.(mu=mean(xdot),sigma=sd(xdot),rho=acf(xdot,lag.max=1)$acf[2],dd=min(xdot),rsq=rsq[1]),nx]
 x43 <- x142$beta[,.(nx,b1,b2,b3,thetab=theta,dthetab=dt)]
@@ -134,11 +113,9 @@ x45 <- x44[order(-nx),.(nx,ppm2min,ppm2max,nid.k=round(nid/1000),nid.f=round(nid
 print('table 4---------------nx properties')
 print(x45)
 fwrite(x45,'table4.csv')
-
 #------------------end table 4
 
 #table 5: radial----------------------------------------------------------------
-#getgd('x151')
 f1 <- function(nxx=4,x=x151) {
 x51 <- x151[['beta']][!is.na(ppm2)][nx==nxx,.(ides=desx,t1=atan2(b3,b2),r1=sqrt(b3^2+b2^2),nx)][,.(nx,ides,r1,t1)]#lapply(.,round,digits=3)%>%as.data.table(.)
 dcast(x51,nx~ides,value.var='r1')[dcast(x51,nx~ides,value.var='t1'),on=c(nx='nx')][,c(1,2,6,7,11)]%>%
@@ -155,7 +132,6 @@ fwrite(x52,'table5.csv')
 #------------------end table 5
 
 #table 6: attrib----------------------------------------------------------------
-#getgd('x161') #VAR
 x12 <- f230424a(d1='2016-03-31',x12=x133,rib=x142)
 x62 <- as.matrix(as.data.table(lapply(predict(x161$var7p3,n.ahead=7)$fcst,`[`,,j='fcst')))
 x63 <- data.table(x12,chat=round(t(tail(sweep(x62,STAT=x62[1,],FUN=`-`,MAR=2)%*%t(pcab(x133)[,2:3]),1)),4)[,1])%>%
@@ -166,8 +142,6 @@ fwrite(x63,'table6.csv')
 #------------------end table 6
 
 #table 7: VAR diagnostics-------------------------------------------------------
-#getgd('x161')
-#names(x161)
 f2 <- function(x1=x161$var0,estdt=x141$ses$estdt) {
   x3 <- as.numeric(estdt[,mean(diff(sort(unique(c(date0,date1)))))]/365.25)
   x4 <- roots(x1,mod=F)

@@ -213,4 +213,4 @@ nn <- c(
   sol4='x151',
   var='x161'
 )
-save(list=nn,file='xnnn.rdata') #for tab, graphic, diagnostice on this script
+save(list=nn,file='xnnn.rdata') #for tab, graphic; option to load this file
