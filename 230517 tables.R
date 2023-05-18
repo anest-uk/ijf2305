@@ -73,7 +73,7 @@ for(i in 1:nrow(x23)) {
 }
 x210 <- data.table(days=days,rbarsq=x29,r=rraw)#,rcen=rcen
 x211 <- cbind(data.table(end=dates[-1]),round(x210,2))
-2111 <- as.data.table(lapply(x211,as.character))
+x2111 <- as.data.table(lapply(x211,as.character))
 x2112 <- as.data.table(as.list(c('mean',round(apply(x211[,-1],2,mean),c(0,2,2)))))
 x2113 <- cbind(x2111[1:14],x2111[15:28],rbind(x2111[29:41],x2112,use.names=F))
 print('table 2---------------drc per period')
