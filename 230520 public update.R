@@ -256,7 +256,7 @@ x177 <- #solve
     stepsip='ver001\\02sip'
   )[c('ses','geo')]#//
 
-x2 <- #RIB regress in beta(x,z),theta
+x179 <- #RIB regress in beta(x,z),theta
   f230506b( 
     nxx=geo3[,sort(unique(nx))],
     estdtx=x177$ses$estdt, #regressand x
@@ -264,9 +264,9 @@ x2 <- #RIB regress in beta(x,z),theta
     kbar=3
   )
 x178 <- 
-  geo3[,.(nx,n0,qq)]%>%
+  geo3[,.(nx,n0,qq)]%>% #n0 is nuts-letter-factor-code; 
   unique(.)%>%
-  .[x2$beta,on=c(nx='nx')]%>%
+  .[x179$beta,on=c(nx='nx')]%>%
   .[,col:=as.factor(n0)]%>%
   .[unique(geo2[,.(nx,lab)]),on=c(n0='nx')]%>%
   .[nname,on=c(i.lab='code')]%>%
@@ -284,6 +284,7 @@ nn <- c( #objects are labelled calc/tab/fig according to their intended use
   var='x161',
   nutsdrc='x174', #calc
   nutsrib='x176', #tab
+  nutssol='x177', #sol
   nuts5='x178'    #fig
 )
 save(list=nn,file='xnnn.rdata') #for tab, graphic; option to load this file

@@ -1,5 +1,4 @@
-#load('../../ijf2305/xnnn.rdata') #this defeats the idea of 'run from nowt' but is here for debug
-#--------------------------------------------------------solution 1 - rc3/annual 
+#----------------------------------------------------------solution 1 rc3/annual 
 geo0 = #104 areas
   c("AL-", "B--", "BA-", "BB-", "BD-", "BH-", "BL-", "BN-", "BR-", 
     "BS-", "CA-", "CB-", "CF-", "CH-", "CM-", "CO-", "CR-", "CT-", 
@@ -27,27 +26,26 @@ x101= #annual
     31) #extend 2022
 cocomkd('ver001\\07pra')
 sfInit(par=T,cpus=ncpus())#//parallel
-x102 <- #PRA prepare regression accrual - annual
+x102 <- #---PRA - annual
   sfLapply(
     geo0[,unique(nx)],
     f230309a,
     geo=geo0, #partition task on rc3
     dfn=x101, #annual
     steprip=c(steprip='ver001\\03rip'), #in
-    steppra=c(steppra='ver001\\07pra') #out ver001=annual
+    steppra=c(steppra='ver001\\07pra')  #out ver001=annual
   )
 sfStop()#//
-stopifnot(length(dir('ver001\\07pra'))>8e3) #quick/approx check it completed
-x103a <- #solve and reprice
+stopifnot(length(dir('ver001\\07pra'))>8e3) #quick/approx size check
+x103a <- #rc3/annual solve
   f230311b( #//parallel
     geo=geo0,
     steppra='ver001\\07pra',
     stepsip='ver001\\02sip'
   )#//
-x103 <- x103a[c('ses','geo')] #x103a is large with BSO - just for MSE
-
+x103 <- x103a[c('ses','geo')] #x103a is large with BSO for MSE
 #---------------------------------------------------------------------prep - DRC
-dfnx1 <- c( #import inital values prior to update being last known good
+dfnx1 <- c( 
   "1994-12-31",
   "1996-07-14","1997-01-17","1997-06-23","1998-01-27","1998-10-22",
   "1999-08-06","1999-12-03","2000-01-31","2001-10-12","2002-06-25",
@@ -57,17 +55,17 @@ dfnx1 <- c( #import inital values prior to update being last known good
   "2010-11-15","2011-09-07","2012-06-09","2013-10-16","2014-06-19",
   "2014-11-03","2015-07-23","2016-01-23","2016-04-10","2016-06-20",
   "2017-08-22","2018-04-18","2020-11-16","2021-09-20","2023-01-31"
-)%>%as.Date(.) #now remove last comma^^^
+)%>%as.Date(.) 
 cocomkd('ver002\\07pra')
 sfInit(par=T,cpus=ncpus())#//parallel
-x111 <- #PRA prepare regression accrual
+x111 <- #PRA - DRC
   sfLapply(
     geo0[,unique(nx)],
     f230309a,
-    geo=geo0, #partition task on rc3
+    geo=geo0,  #partition task on rc3
     dfn=dfnx1, #drc
     steprip=c(steprip='ver001\\03rip'), #in
-    steppra=c(steppra='ver002\\07pra') #out ver002=drc
+    steppra=c(steppra='ver002\\07pra')  #out ver002=drc
   )
 sfStop()#//
 #----------------------------------------------------------------------prep - PV
@@ -75,7 +73,7 @@ x121 <- x103$ses$soar%>%
   .[,.(nid,m2,pv,ppm2,rcx=rc9)]%>%
   rbind(.,.[,.(nid=sum(nid),m2=sum(m2),pv=sum(pv),ppm2=sum(pv)/sum(m2)),.(rcx=substr(rcx,1,6))])%>%
   rbind(.,.[,.(nid=sum(nid),m2=sum(m2),pv=sum(pv),ppm2=sum(pv)/sum(m2)),.(rcx=substr(rcx,1,3))])
-#-------------------------------------------------------solution2 - cardinal/DRC
+#---------------------------------------------------------solution 2 cardinal/DRC
 x131 <- #GEO.cardinal
   structure(
     list(
@@ -95,7 +93,7 @@ x131 <- #GEO.cardinal
     ), 
     class = "data.frame", 
     row.names = c(NA, -50L))%>% data.table(.)
-x132 <- #DRC solve 
+x132 <- #cardinal/DRC solve 
   f230311b(#//parallel
     geo=x131[,.(rc9,nx,lab=labxnnn(nx))],
     steppra='ver002\\07pra',#ver002=drc
@@ -105,9 +103,9 @@ x133 <- #pca
   x132$ses$estdt[,.(date=date1,lab=rc3,xdot)]%>%
   dcast(.,date~lab,value.var='xdot')%>%
   pcaest(.)
-#------------------------------------------------------------solution3 - DTC/DRC
-breaks <- c(10, 541, 824, 1272, 1631, 2024, 2113, 2189, 2253) #rc6(ppm2) bins
-geo1 <- x121%>% #encoded geo which is ordered and has right end-breaks
+#--------------------------------------------------------------solution 3 DTC/DRC
+breaks <- c(10, 541, 824, 1272, 1631, 2024, 2113, 2189, 2253) #rc6(ppm2) binbreaks
+geo1 <- x121%>% 
   .[nchar(rcx)==6]%>%
   .[order(ppm2)]%>%
   .[,.(
@@ -115,7 +113,7 @@ geo1 <- x121%>% #encoded geo which is ordered and has right end-breaks
     qai=1:.N,
     nx=apply(sapply(breaks,`<`,1:.N),1,sum)+1
     )]
-x141a <- #DTC solve x(dtc)
+x141a <- #DTC/DRC solve 
   f230311b(#//parallel
     geo=geo1[,.(rc9=rcx,nx,qai,lab=labxnnn(nx))],
     steppra='ver002\\07pra',#ver002=drc
@@ -134,19 +132,43 @@ f230506c( #display panel
   drc=x141,
   theta=x142$beta,
   pcax=x133)
-#------------------------------------------------------------solution4 - DES/DRC
+#--------------------------------------------------------------solution 4 DES/DRC
 source('eennx.R') #coordinates
 eennx <- as.data.table(eennx)[,.(rc6=rc,eex,nnx)]
-x150 <- f230516a(
+x150 <- f230516a( #des prep
     soar=x121,
     geo=geo1[,.(rc6=rcx,qai,nx)],
-    xso=eennx
-)
-x151 <- #returns list(geo,beta) for des-split
+    xso=eennx)
+x0 <- 
   f230516b(
     geo=geo1[,.(rc6=rcx,qai,nx)],
     des=x150,
     pca=x133)
+x1 <- unique(x0[,.(dir,type)])%>%
+  .[,qq:=c(3,4,2,5,1)]%>%
+  .[order(qq)]%>%
+  .[x0,on=c(dir='dir',type='type')]%>%
+  .[,.(ndtc=nx,qq,rc6)]
+x2 <- x1[,.(ndtc,qq)]%>%
+  unique(.)%>%
+  .[,.(ndtc,qq,ndes=1:.N)]
+geo4 <- #geo for des split
+  x1[x2,on=c(ndtc='ndtc',qq='qq')]%>%
+  .[,.(rc6,ndes)]
+x151a <- #DTC/DRC solve 
+  f230311b(#//parallel
+    geo=geo4[,.(rc9=rc6,nx=ndes,lab=labxnnn(ndes))],
+    steppra='ver002\\07pra',#ver002=drc
+    stepsip='ver001\\02sip'
+  )#//
+x151 <- x151a[c('ses','geo')]
+x152 <- #RIB regress in beta(x,z),theta
+  f230506b( 
+    nxx=geo4[,sort(unique(ndes))],
+    estdtx=x151$ses$estdt, #regressand x
+    pcax=x133, #regressor z
+    kbar=3
+  )
 #----------------------------------------------------------------------------VAR
 x2 <- x133%>%
   pcaz(.)%>%
@@ -170,7 +192,7 @@ x161 <- list(
   var0p3=x5,
   var7  =x6,
   var7p3=x7)
-#-----------------------------------------------------------------------NUTS/ANN
+#------------------------------------------------------------solution 5 NUTS/ANN
 rmifgl('geo')
 source('geo2.r') #NUTS table derives from https://github.com/ygalanak/UKpc2NUTS
 x1 <- data.table(geo)[,.(rc6,NUTS=ltr)]
@@ -179,12 +201,15 @@ geo2 <- x1[x1[,.(rc6=unique(rc6))],on=c(rc6='rc6'),mult='first']%>%#duplicates a
   .[order(NUTS)]%>%
   .[,.(rc9=rc6,nx=as.integer(as.factor(NUTS)),lab=NUTS)]%>%
   .[geo1[,.(rc9=rcx)],on=c(rc9='rc9')]
-x171 <- f230311b( #solve
+x171 <- #NUTS/annual solve
+  f230311b( 
     geo=geo2, #NUTS
     steppra='ver001\\07pra',#annual
     stepsip='ver001\\02sip'
   )
-x172 <- f230311b( #solve
+#------------------------------------------------------------solution 6 DTC/ANN
+x172 <- #DTC/annual solve
+  f230311b( 
     geo=geo1[,.(rc9=rcx,nx,lab=labxnnn(nx))], #DTC
     steppra='ver001\\07pra',#annual
     stepsip='ver001\\02sip'
@@ -202,29 +227,27 @@ x6 <- #sse(RC3) = benchmark 2
   rbindlist(.)%>%
   .[,geo:='RC3']
 x173 <- rbind(x4,x5,x6)[,.(N=sum(N),sse=sum(sse)),geo][,sserel:=round(sse/sse[1],4)]
-#-------------------------------------------------------------------further NUTS 
-
-x174 <- f230311b( #solve - not done until now, NUTS on drc
+#------------------------------------------------------------solution 7 NUTS.DRC
+x174 <- #NUTS/DRC solve
+  f230311b( 
     geo=geo2, #NUTS
     steppra='ver002\\07pra',#DRC
     stepsip='ver001\\02sip'
   )[c('geo','ses')]
 
-x175 <- #RIB regress in beta(x,z) for NUTS
+x175 <- #NUTS RIB
   f230506b( 
     nxx=geo2[,sort(unique(nx))], #NUTS
     estdtx=x174$ses$estdt[,rc3:=labxnnn(nx)], #regressand x = NUTS
     pcax=x133, #regressor z = DTC
     kbar=3
   )
-
 nname <- #NUTS names
 structure(list(X1 = c("L", "K", "J", "I", "H", "G", "F", "E", 
 "D", "C"), X2 = c("Wales", "South West", "South East", "London", 
 "East of England", "West Midlands", "East Midlands", "Yorkshire and Humber", 
 "North West", "North East")), class = "data.frame", row.names = c(NA, 
 -10L))%>%data.table(.)%>%setnames(.,c('code','name'))
-
 p.theta.lin <-  #lppm2(theta) piecewise linear trained on DTC
   geo1%>% #DTC
   .[x121,on=c(rcx='rcx'),nomatch=NULL]%>% #Soar
@@ -234,7 +257,6 @@ p.theta.lin <-  #lppm2(theta) piecewise linear trained on DTC
   x142$beta[.,on=c(nx='nx')]%>% #DTC RIB
   .[order(nx)]%>%
   .[,approxfun(x=theta,y=lppm2)]
-
 x176 <- geo2%>% #NUTS beta, ppm2, inferredppm2
   .[,.(rc6=rc9,nx,nutscode=lab)]%>%
   nname[.,on=c(code='nutscode')]%>%
@@ -243,35 +265,31 @@ x176 <- geo2%>% #NUTS beta, ppm2, inferredppm2
   .[x175$beta,on=c(nx='nx')]%>% #NUTS RIB
   .[,.(name,theta,rbarsq,a,at,ppm2,phat=exp(p.theta.lin(theta)))]%>%
   .[order(-ppm2)] #,cor(log(ppm2),log(phat))
-
 geo3 <- #geo-quintiles within NUTS regions
   x121[geo2,on=c(rcx='rc9')]%>%
   .[,.SD[,.( nid,m2,pv,ppm2,rcx,nx,qq=ceiling(5*cumsum(nid)/sum(nid))[])],lab]%>%
   .[,.(nid,rcx,n0=nx,qq,nx=(nx-1)*5+qq)]
-
-x177 <- #solve
+#------------------------------------------------------------solution 8 QNUT/DRC
+x177 <- #QNUT/DRC solve
   f230311b(#//parallel
     geo=geo3[,.(rc9=rcx,nx,qai=1:.N,lab=labxnnn(nx))],
     steppra='ver002\\07pra',#ver002=drc
     stepsip='ver001\\02sip'
   )[c('ses','geo')]#//
-
-x2 <- #RIB regress in beta(x,z),theta
+x179 <- #QNUT RIB
   f230506b( 
     nxx=geo3[,sort(unique(nx))],
     estdtx=x177$ses$estdt, #regressand x
     pcax=x133, #regressor z
-    kbar=3
-  )
-x178 <- 
-  geo3[,.(nx,n0,qq)]%>%
+    kbar=3)
+x178 <- #QNUT summary
+  geo3[,.(nx,n0,qq)]%>% #n0 is nuts-letter-factor-code; 
   unique(.)%>%
-  .[x2$beta,on=c(nx='nx')]%>%
+  .[x179$beta,on=c(nx='nx')]%>%
   .[,col:=as.factor(n0)]%>%
   .[unique(geo2[,.(nx,lab)]),on=c(n0='nx')]%>%
   .[nname,on=c(i.lab='code')]%>%
   .[,col:=as.factor(paste0(n0,name))]
-
 #-----------------------------------------------------save for graphics and tabs
 nn <- c( #objects are labelled calc/tab/fig according to their intended use
   sol1='x103',
@@ -281,9 +299,11 @@ nn <- c( #objects are labelled calc/tab/fig according to their intended use
   sol3='x141',
   rib3='x142',
   sol4='x151',
+  rib4='x152',
   var='x161',
   nutsdrc='x174', #calc
   nutsrib='x176', #tab
+  nutssol='x177', #sol
   nuts5='x178'    #fig
 )
 save(list=nn,file='xnnn.rdata') #for tab, graphic; option to load this file

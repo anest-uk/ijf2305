@@ -11,6 +11,7 @@ nn <- c( #prepped in 'public update'
   sol4='x151',
   var='x161'
 )
+load('xnnn.rdata')
 
 labelsize <- 2.5
 x1 <- x103$ses$soar%>%
@@ -280,7 +281,8 @@ desat <- function(cols, sat=0.5) {
     hsv(X[1,], X[2,], X[3,])
 }
 x1 <- 
-  copy(x151$beta)[(!is.na(ppm2))|nx%in%c(1,10)]%>%
+  #copy(x151$beta)[(!is.na(ppm2))|nx%in%c(1,10)]%>%
+  copy(x151$beta)[(!is.na(ppm2))&(!(nx%in%c(1:2,7:10)))]%>%
   .[,ii:=1:.N]%>%
   .[,cc:=desat(gg1(10)[nx],(6+2*desx)/10),ii]%>%
   .[,iifac:=reorder(ii,ii)]
@@ -352,7 +354,236 @@ x <- ggplot(x5,aes(ii,z))+
 print(x)
 ggsave('rplot008.tif', x, device = "tiff", dpi =1000, width=3543, height=2400, units='px')
 
-#nuts 9 - needs work
-ggplot(x178[n0%in%c(1,5,9,8,7)],aes(b2,b3,color=col))+geom_point()+geom_path()
+#nuts 9 - is replacement for hedgehog #x151 x178
+n0x <- c(1,5,9,8,7) #regions
+nxx <- 3:6
+x1 <- 
+  copy(x151$beta)%>%
+  .[(!is.na(ppm2))&nx%in%nxx]%>%
+  .[,ii:=1:.N]%>%
+  .[,lab:='']%>%
+  .[nx==6&desx==2,lab:='DES>0']%>%
+  .[nx==6&desx==-2,lab:='DES<0']%>%
+  .[,shade:='black']
+x1[col==-2,shade:='red']
+x1[col==2,shade:='blue']
+x2 <- 
+  copy(x178)%>%
+  .[,nxfac:=reorder(x178$col,-rank(x178$theta))]%>%
+  .[n0%in%n0x]%>%
+  .[,lab:='']
+x2[qq==1,lab:=c('SW','SE','London','Midlands','NE')]
+x3 <- copy(x2)[,b2:=.97*b2]
+x2a <- x2[n0==7][qq==5][,labarrow:=''][]#'price'
 
-x3+geom_path(data=x178[n0%in%c(1,5,9,8,7)],aes(b2,b3,color=col))
+x4 <- 
+  ggplot(
+    data=x1,
+    aes(b2,b3,label=lab)
+    )+
+  geom_hline(yintercept=0,color=axiscol,size=.3)+
+  geom_vline(xintercept=0,color=axiscol,size=.3)
+
+for(i in seq_along(nxx)) { #equiprice
+  x4 <- x4+
+    geom_point(
+      data=x1[.N:1]%>%
+        .[nx==nxx[i]],
+      size=.4,
+      shape=25
+    )+
+    geom_path(
+      data=x1[.N:1][nx==nxx[i]],
+      linetype='dotted',
+      size=.3#,
+      #color='grey'
+    )
+}
+
+#for(i in seq_along(n0x)){
+x4 <- x4+ #region lines'
+  geom_point(
+    data=x2[n0%in%n0x],
+    size=.75,
+    shape=22
+    ,
+    aes(color=nxfac,fill=nxfac)
+  )+
+  geom_path(
+    data=x2[n0%in%n0x]
+    ,
+    aes(color=nxfac)
+    ,
+    size=.6
+    #,
+    #arrow = arrow(ends='last',type='open',length= unit(0.08, "inches"))#arrow
+  )+
+  geom_text(
+    data=x2a
+    ,
+    aes(color=nxfac,label=labarrow)
+    ,
+    size=4
+    ,
+    nudge_y=.002
+    ,
+    nudge_x=.002
+    ,
+    hjust=0
+  )
+
+x4 <- x4+
+    geom_point(
+      data=x1[col==-2],
+      size=1,
+      shape=25,
+      color='red',
+      fill='red'
+    )+
+    geom_point(
+      data=x1[col==+2],
+      size=1,
+      shape=25,
+      color='blue',
+      fill='blue'
+    )
+  #geom_label_repel( data=x2[n0%in%n0x],aes(label=i.lab,color=nxfac))
+  x4 <- x4+ 
+    geom_text_repel( data=x1[lab=='DES<0'],aes(label=lab),size=3,color='red',direction='y',nudge_y=.005,min.segment.length=.001)+
+    geom_text_repel( data=x1[lab=='DES>0'],aes(label=lab),size=3,color='blue',direction='y',nudge_y=-.005,min.segment.length=.001)+
+    geom_text( data=x3,aes(label=lab,color=nxfac),size=3,nudge_x=.002,nudge_y=.0027,hjust=0) #region labels
+#}
+  #scm <- setNames(levels(x4[,nxfac])[c(1,5,9,8,7)],c('red','orange','yellow','green','blue'))
+  #scm <- setNames(c('red','orange','yellow','green','blue'),levels(x4[,nxfac])[c(1,5,9,8,7)])
+  scm <- setNames(gg1(10)[c(1,3,5,7,8)],levels(x2[,nxfac])[rev(c(1,2,4,6,10))])
+x <- x4+
+  ylim(c(-.02,.035))+xlim(c(-.04,.045))+
+  theme(text=element_text(size=7))+
+  scale_fill_manual(values=rev(scm))+
+  scale_color_manual(values=rev(scm))+
+  # scale_fill_manual(values=setNames(gg1(10),x2[,levels(nxfac)]))+
+  # scale_color_manual(values=setNames(gg1(10),x2[,levels(nxfac)]))+
+  #scale_color_manual(values=x2)+
+  xlab(bquote(beta[2]))+ylab(bquote(beta[3]))+
+  theme_bw() +
+  theme(
+    axis.line = element_line(colour = "black"),
+    panel.grid.major = element_line(size=.4,linetype = "dotted",color='grey80'),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    panel.background = element_blank(),
+    text=element_text(size=7,face='plain'),
+    legend.position='none',
+    axis.line.y.left=element_line(size=.1),
+    axis.line.x.bottom=element_line(size=.1),
+    axis.text=element_text(size=6,face = "plain")
+    )#+
+print(x)
+ggsave('rplot009.tif', x, device = "tiff", dpi =1000, width=3543, height=2400, units='px')
+
+# 
+# 
+# 
+# x3 <- ggplot(x1[.N:1],aes(b2,b3,color=nxfac,fill=nxfac))+
+#   geom_hline(yintercept=0,color=axiscol,size=.3)+
+#   geom_vline(xintercept=0,color=axiscol,size=.3)+
+#   geom_point(size=1,shape=25)+
+#   geom_path(linetype='dotted')
+# x4 <- copy(x178)[,nxfac:=reorder(x178$col,x178$n0)][n0%in%c(1,5,9,8,7),.(b2,b3,nxfac)]
+# x <- x3+
+#   geom_label(data=x1[ii==32][,leg:=paste0('des=',round(des,1))],aes(label=leg),size=labelsize,color=gg1(10)[8],hjust=1.1,vjust=0)+
+#   geom_label(data=x1[ii==36][,leg:=paste0('des=+',round(des,1))],aes(label=leg),size=labelsize,color=gg1(10)[8],hjust=-0.1,vjust=1)+
+#   ylim(c(-.025,.03))+xlim(c(-.045,.04))+
+#   theme(text=element_text(size=7))+
+#   scale_color_manual(values=x2)+
+#   xlab(bquote(beta[2]))+ylab(bquote(beta[3]))+
+#   theme_bw() #+
+#   # theme(
+#   #   axis.line = element_line(colour = "black"),
+#   #   panel.grid.major = element_line(size=.4,linetype = "dotted",color='grey80'),
+#   #   panel.grid.minor = element_blank(),
+#   #   panel.border = element_blank(),
+#   #   panel.background = element_blank(),
+#   #   text=element_text(size=7,face='plain'),
+#   #   axis.line.y.left=element_line(size=.1),
+#   #   axis.line.x.bottom=element_line(size=.1),
+#   #   axis.text=element_text(size=6,face = "plain"),
+#   #   legend.position='none')#+
+# x
+# #ggplot(x178[n0%in%c(1,5,9,8,7)],aes(b2,b3,color=col))+geom_point()+geom_path()
+# x+geom_path(
+#   data=x4[,.(b2,b3,nxfac)], #nuts
+#   aes(b2,b3,color=nxfac)
+#   # aes(b2,b3,color=nxfac)
+#   ) +
+#   geom_point(
+#   data=x4[,.(b2,b3,nxfac)], #nuts
+#   aes(b2,b3,color=nxfac),
+#   size=1
+#   )
+# 
+# ggsave('rplot007.tif', x, device = "tiff", dpi =1000, width=3543, height=2400, units='px')
+# 
+# 
+# 
+# ggplot(x1[.N:1],aes(b2,b3,color=nxfac,fill=nxfac))+
+#   geom_hline(yintercept=0,color=axiscol,size=.3)+
+#   geom_vline(xintercept=0,color=axiscol,size=.3)+
+#   geom_point(size=1,shape=25)+
+#   geom_path(linetype='dotted')+
+#   geom_path(aes(b2,b3,color=nxfac))
+# 
+# x1[,lab:=''] #equiprice
+# x1[nx==6&desx==2,lab:='DES>0']
+# x1[nx==6&desx==-2,lab:='DES<0']
+# x9 <- ggplot(x1,aes(b2,b3,label=lab),color='grey')+
+#   geom_text(hjust=-.3,vjust=.5)
+# nxx <- 3:6
+# i <- 1
+# for(i in seq_along(nxx)) {
+#   x9 <- x9+
+#   geom_point(data=x1[.N:1][nx==nxx[i]],size=1,shape=25)+
+#   geom_path(data=x1[.N:1][nx==nxx[i]],linetype='dotted')
+# }
+# x9
+# n0x <- c(1,5,9,8,7)
+# x4a <- copy(x178)[,nxfac:=reorder(x178$col,x178$n0)][n0%in%n0x]
+# for(i in seq_along(n0x)){
+#   x9 <- x9+
+#   geom_point(data=x4a[n0==n0x[i]],size=1,shape=25,aes(color=nxfac))+
+#   geom_path(data=x4a[n0==n0x[i]],aes(color=nxfac))
+# }
+# x9
+# 
+# ggplot(x4[,.(b2,b3,nxfac)],
+#   aes(b2,b3,color=nxfac))+geom_path()
+# 
+# ggplot(x1[.N:1])+
+#   geom_path(aes(b2,b3,color=nxfac))
+# 
+# ggplot(x1[.N:1],aes(b2,b3,color=nxfac,fill=nxfac))+
+#   geom_hline(yintercept=0,color=axiscol,size=.3)+
+#   geom_vline(xintercept=0,color=axiscol,size=.3)+
+#   geom_point(size=1,shape=25)+
+#   geom_path(linetype='dotted')+
+#   geom_path(aes(b2,b3,color=nxfac))
+# 
+# x3+ geom_path(data=x4[,.(b2,b3,nxfac)],aes(b2,b3,color=nxfac))
+# 
+# xx <- '#ff0000'
+# names(xx) <- 0
+# 
+# x1a <- x1[.N:1][,zero:=as.factor(rep(0,.N))][]
+# x1a[,zero]
+# x3 <- NULL
+# nxx <- x1a[,sort(unique(nx))]
+# i <- 1
+# x3 <- ggplot(x1a,aes(b2,b3,color=zero),size=1,shape=25)+
+#     scale_color_manual(values=c(xx))+
+#   geom_point(x1a[nx==nxx[i]])
+# for(i in seq_along(nxx)){
+#   x3 <- x3+
+#   geom_point(x1a[nx==nxx[i]],size=1,shape=25)+
+#   geom_path(x1a[nx==nxx[i]],linetype='dotted')
+#   x3
+# }

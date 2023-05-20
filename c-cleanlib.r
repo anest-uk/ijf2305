@@ -418,11 +418,13 @@ function(
     pca=f230312ad$pca,
     nmin=20,
     verbose=F,
-    dodrops=T
+    dodrops=T,
+    dorib=T #solve for rib
 ) {
   x1 <- des[geo,on=c(rc6='rc6')]
   x2 <- x1[,.(ppm2n=weighted.mean(ppm2,m2),desn=weighted.mean(des,m2)),.(nx)]
   x3 <- x1[x2,on=c(nx='nx')][,desrel:=des-desn]
+  x13 <- NULL
   if(dodrops) {
     x8 <- as.list(NULL)
     for(i in 1:2) { #lo and hi des
@@ -458,39 +460,43 @@ function(
     x9 <- rbindlist(x8)[order(idd)]
     x10a <- setkey(x3[nx==nxx],rc6)[!x9[dir>0,drop]] #hi des
     x10b <- setkey(x3[nx==nxx],rc6)[!x9[dir<0,drop]] #low des
-    x12a <- f230314a(  #solve+rib
-      nx=1,
-      pcax=pca, #pca
-      geox=x10a[,.(rc9=rc6,nx=1,qai=qai,lab=paste0('x',zeroprepend(1,3)))] #hi des
-    )
-    x12b <- f230314a( 
-      nx=2,
-      pcax=pca, #pca
-      geox=x10b[,.(rc9=rc6,nx=2,qai=qai,lab=paste0('x',zeroprepend(2,3)))] #lo des
-    )
-    x13 <-rbind(
-      x12a$beta%>%
-        .[,des:=x10a[,weighted.mean(des,m2)]]%>%
-        .[,ppm2:=x10a[,weighted.mean(ppm2,m2)]]
-      ,
-      x12b$beta%>%
-        .[,des:=x10b[,weighted.mean(des,m2)]]%>%
-        .[,ppm2:=x10b[,weighted.mean(ppm2,m2)]]
-    )%>%
-      .[,nx:=nxx]%>%
-      .[]
+    if(dorib) {
+      x12a <- f230314a(  #solve+rib
+        nx=1,
+        pcax=pca, #pca
+        geox=x10a[,.(rc9=rc6,nx=1,qai=qai,lab=paste0('x',zeroprepend(1,3)))] #hi des
+      )
+      x12b <- f230314a( 
+        nx=2,
+        pcax=pca, #pca
+        geox=x10b[,.(rc9=rc6,nx=2,qai=qai,lab=paste0('x',zeroprepend(2,3)))] #lo des
+      )
+      x13 <-rbind(
+        x12a$beta%>%
+          .[,des:=x10a[,weighted.mean(des,m2)]]%>%
+          .[,ppm2:=x10a[,weighted.mean(ppm2,m2)]]
+        ,
+        x12b$beta%>%
+          .[,des:=x10b[,weighted.mean(des,m2)]]%>%
+          .[,ppm2:=x10b[,weighted.mean(ppm2,m2)]]
+      )%>%
+        .[,nx:=nxx]%>%
+        .[]
+    }
     x14 <- rbind(x10a[,dir:='hi'],x10b[,dir:='lo'])
   } else { #here no drops, estimate entire bin
     x10 <- x3[nx==nxx]
-    x13 <- f230314a(  #solve+rib
-      nx=0,
-      pcax=pca, #pca
-      geox=x10[,.(rc9=rc6,nx=0,qai=qai,lab=paste0('x',zeroprepend(0,3)))]
-    )$beta%>%
-      .[,des:=x10[,weighted.mean(des,m2)]]%>%
-      .[,ppm2:=x10[,weighted.mean(ppm2,m2)]]%>%
-      .[,nx:=nxx]%>%
-      .[]
+    if(dorib) {
+      x13 <- f230314a(  #solve+rib
+        nx=0,
+        pcax=pca, #pca
+        geox=x10[,.(rc9=rc6,nx=0,qai=qai,lab=paste0('x',zeroprepend(0,3)))]
+      )$beta%>%
+        .[,des:=x10[,weighted.mean(des,m2)]]%>%
+        .[,ppm2:=x10[,weighted.mean(ppm2,m2)]]%>%
+        .[,nx:=nxx]%>%
+        .[]
+    }
     x14 <- copy(x10)[,dir:='all']
   }
   x15 <- list(geo=x14,beta=x13)
@@ -507,21 +513,21 @@ function(
     verbose=F
 ) {
   halfway <- geo[nx==nxx,round(.N/2)]
-  x1 <- f230417b(nxx=nxx,nn=nn,geo=geo,des=des,pca=pca,nmin=Inf,verbose=verbose,dodrops=F)
-  x2 <- f230417b(nxx=nxx,nn=nn,geo=geo,des=des,pca=pca,nmin=halfway,verbose=verbose)
-  x3 <- f230417b(nxx=nxx,nn=nn,geo=geo,des=des,pca=pca,nmin=nmin,verbose=verbose)
-  x4 <- rbind(
-    x1[['beta']][,nmin:=Inf][,type:='all'],
-    x2[['beta']][,nmin:=halfway][,type:='half'],
-    x3[['beta']][,nmin:=nmin][,type:='full']
-  )
+  x1 <- f230417b(nxx=nxx,nn=nn,geo=geo,des=des,pca=pca,nmin=Inf,verbose=verbose,dodrops=F,dorib=F)
+  x2 <- f230417b(nxx=nxx,nn=nn,geo=geo,des=des,pca=pca,nmin=halfway,verbose=verbose,dorib=F)
+  x3 <- f230417b(nxx=nxx,nn=nn,geo=geo,des=des,pca=pca,nmin=nmin,verbose=verbose,dorib=F)
+  # x4 <- rbind(
+  #   x1[['beta']][,nmin:=Inf][,type:='all'],
+  #   x2[['beta']][,nmin:=halfway][,type:='half'],
+  #   x3[['beta']][,nmin:=nmin][,type:='full']
+  # )
   x5 <- rbind(
     x1[['geo']][,nmin:=Inf][,type:='all'],
     x2[['geo']][,nmin:=halfway][,type:='half'],
     x3[['geo']][,nmin:=nmin][,type:='full']
   )
-  x6 <- list(geo=x5,beta=x4)
-  x6
+  #x6 <- list(geo=x5)#,beta=x4)
+  x5
 }
 f230424a <-
 function(
@@ -570,7 +576,9 @@ function(
   x8 <- as.data.table(as.list(c(as.list(x6),x7,nx=nxx,lab=x1[1,rc3])))%>%
     setnames(.,c(paste0('b',1:kbar),'theta','nx','lab'))%>%
     .[,rsq:=x5$r.squared]%>%
-    .[,rbarsq:=x5$adj.r.squared]
+    .[,rbarsq:=x5$adj.r.squared]%>%
+    .[,a:=x5$coefficients[1]]%>%
+    .[,at:=x5$coefficients[1,3]]
   x9 <- list(pca=pcax,x=x1,beta=x8)
   stopifnot(x9[['beta']][,all.equal(labxnnn(nx),lab)])
   stopifnot(x9[['x']][,all.equal(labxnnn(nx),lab)])
@@ -737,40 +745,50 @@ function(
 }
 f230516b <-
 function(
-    geo,
-    des,
-    pca,
-    parx=geo[,4<length(unique(nx))]
+    geo=geo1[,.(rc6=rcx,qai,nx)],
+    des=x150,
+    pca=x133,
+    nxx=2:9,#nx to split
+    parx=F#geo[,4<length(unique(nx))] #dorib=F now so no need for //
 ) { 
-  sfInit(par=parx,cpus=ncpus())
-  x1 <- 
-    sfLapply(
-      as.list(2:9), #nx to split
+  x1 <- lapply(
+      as.list(nxx), 
       f230417c,
       geo=geo,
       des=des,
-      pca=x133
-    )
-  sfStop()
-  xbeta <- as.list(NULL)
-  xgeo <- as.list(NULL)
-  for(i in seq_along(x1)) {
-    xbeta[[i]] <- x1[[i]][['beta']][order(des)][,desx:=-2:2]
-    xgeo[[i]] <- x1[[i]][['geo']]
-  }
-  x2 <- rbindlist(xgeo) 
-  x3 <- rbind(
-    rbindlist(xbeta)[,.(b2,b3,nx,des,desx,ppm2)]#,
-    #x142$beta[,.(b2,b3,nx,des=0,desx=0,ppm2=NA)]
-  )[,col:=reorder(as.factor(desx),-desx)]%>%
-    .[,nxfac:=as.factor(nx)]%>%
-    .[order(nx,desx)]%>%
-    .[,unit:=as.factor(nx)]
-  x4 <- list(
-    geo=x2,
-    beta=x3  
+      pca=pca
   )
-  x4
+# K  sfInit(par=parx,cpus=ncpus())
+#   x1 <- 
+#     sfLapply(
+#       as.list(2:9), #nx to split
+#       f230417c,
+#       geo=geo,
+#       des=des,
+#       pca=x133
+#     )
+#   sfStop()
+#   #xbeta <- as.list(NULL)
+  # xgeo <- as.list(NULL)
+  # for(i in seq_along(x1)) {
+  #   #xbeta[[i]] <- x1[[i]][['beta']][order(des)][,desx:=-2:2]
+  #   xgeo[[i]] <- x1[[i]][['geo']]
+  # }
+  # x2 <- rbindlist(xgeo) 
+  # x3 <- rbind(
+  #   rbindlist(xbeta)[,.(b2,b3,nx,des,desx,ppm2)]#,
+  #   #x142$beta[,.(b2,b3,nx,des=0,desx=0,ppm2=NA)]
+  # )[,col:=reorder(as.factor(desx),-desx)]%>%
+  #   .[,nxfac:=as.factor(nx)]%>%
+  #   .[order(nx,desx)]%>%
+  #   .[,unit:=as.factor(nx)]
+  # x4 <- list(
+  #   geo=x2#,
+  #   #beta=x3  
+  # )
+  #x4
+  x2 <- rbindlist(x1)
+  x2
 }
 grepstring <-
 function(x=regpcode(metro()),dollar=F,caret=T) {

@@ -11,6 +11,7 @@ nn <- c( #prepped in 'public update'
   sol4='x151',
   var='x161'
 )
+load('xnnn.rdata')
 
 labelsize <- 2.5
 x1 <- x103$ses$soar%>%
@@ -24,7 +25,7 @@ gg1 <- function(n) {
 gg2 <- data.table(code=(gg1(100)),lppm2=seq(from=log(1500),to=log(20000),length.out=100))
 gg3 <- gg2[x1[nchar(rcx)==3,.(rcx,lppm2=log(ppm2))],on=c(lppm2='lppm2'),roll='nearest']
 
-#1 solution 1
+#1 solution 1------------------------------------
 x0 <- x103[c('ses','geo')]
 rcx <- c('TS-','L--','S--','LS-','M--','B--','BS-','N--','AL-','WC-')
 rcx1 <- c('WC-','AL-','B--','TS-')
@@ -64,7 +65,7 @@ x <- ggplot(x3[rc9%in%rcx1],aes(date1,x,color=col,label=leg))+
 print(x)
 ggsave('rplot001.tif', x, device = "tiff", dpi =1000, width=3543, height=2400, units='px')
 
-#2 rc3 scatter
+#2 rc3 scatter--------------------------------
 x0a <- x0$geo[x103$ses$estdt,on=c(nx='nx')][x103$ses$soar[,.(ppm2=sum(pv)/sum(m2)),.(rc3=substr(rc9,1,3))],on=c(rc9='rc3')][]
 x1a <- dcast(x103$ses$estdt,date1~rc3,value.var='xdot')%>%
   setnames(.,old='date1',new='date')%>%
@@ -105,7 +106,7 @@ print(x)
 set.seed(124)
 ggsave('rplot002.tif', x, device = "tiff", dpi =1000, width=3543, height=2400, units='px')
 
-#3 zm  z23(m)+shifted
+#3 zm  z23(m)+shifted---------------------------
 pointsize=.4
 x3 <- data.table(pcaz(x133)[,2:3],keep.rownames=T)%>%
   setnames(.,c('date','b2','b3'))%>%
@@ -143,7 +144,7 @@ x <- ggplot(x6a,aes(ii,z,color=col,label=leg))+
 print(x)
 ggsave('rplot003.tif', x, device = "tiff", dpi =1000, width=3543, height=2400, units='px')
 
-#4 thetaz(m)
+#4 thetaz(m)------------------------------------
 x3 <- data.table(pcaz(x133)[,2:3],keep.rownames=T)%>%
   setnames(.,c('date','zdot2','zdot3'))%>%
   .[,.(date,zdot2,zdot3,z2=cumsum(zdot2),z3=cumsum(zdot3))]%>%
@@ -194,7 +195,7 @@ x <- ggplot(x3,aes(ii,value,color=variable))+
 print(x)
 ggsave('rplot004.tif', x, device = "tiff", dpi =1000, width=3543, height=2400, units='px')
   
-#5 b2/b3 the wheel
+#5 b2/b3 the wheel--------------------------
 x8 <- rbind(
   x142$beta[,.(theta,b2,b3,label=nx,type='price-bin',lab=reorder(nx,-nx))]
 )[,type:=as.factor(type)]
@@ -231,7 +232,7 @@ ggplot(x8,aes(b2,b3,color=lab))+
 print(x)
 ggsave('rplot005.tif', x, device = "tiff", dpi =1000, width=3543, height=2000, units='px')
 
-#6 xn(m)
+#6 xn(m)--------------------------------
 x9 <- x141$ses$estdt[,.(
     date0,
     date1,
@@ -274,35 +275,106 @@ x <- ggplot(x9a,aes(ii,x,color=col,label=leg))+#,label=leg
 print(x)
 ggsave('rplot006.tif', x, device = "tiff", dpi =1000, width=3543, height=3000, units='px')
 
-#hedgehog 7
-desat <- function(cols, sat=0.5) {
-    X <- diag(c(1, sat, 1)) %*% rgb2hsv(col2rgb(cols))
-    hsv(X[1,], X[2,], X[3,])
-}
+#NUTS 7 -----------------------------
+n0x <- c(1,5,9,8,7) #regions
+nxx <- 3:6
 x1 <- 
-  copy(x151$beta)[(!is.na(ppm2))|nx%in%c(1,10)]%>%
+  copy(x151$beta)%>%
+  .[(!is.na(ppm2))&nx%in%nxx]%>%
   .[,ii:=1:.N]%>%
-  .[,cc:=desat(gg1(10)[nx],(6+2*desx)/10),ii]%>%
-  .[,iifac:=reorder(ii,ii)]
-x2 <- setNames(x1[,cc],1:x1[,.N])
-x2[1] <- gg1(10)[1]
-x2[length(x2)] <- gg1(10)[10]
-x3 <- ggplot(x1,aes(b2,b3,color=iifac))+
+  .[,lab:='']%>%
+  .[nx==6&desx==2,lab:='DES>0']%>%
+  .[nx==6&desx==-2,lab:='DES<0']%>%
+  .[,shade:='black']
+x1[col==-2,shade:='red']
+x1[col==2,shade:='blue']
+x2 <- 
+  copy(x178)%>%
+  .[,nxfac:=reorder(x178$col,-rank(x178$theta))]%>%
+  .[n0%in%n0x]%>%
+  .[,lab:='']
+x2[qq==1,lab:=c('SW','SE','London','Midlands','NE')]
+x3 <- copy(x2)[,b2:=.97*b2]
+x4 <- 
+  ggplot(
+    data=x1,
+    aes(b2,b3,label=lab)
+  )+
   geom_hline(yintercept=0,color=axiscol,size=.3)+
   geom_vline(xintercept=0,color=axiscol,size=.3)
-for(i in 1:10) {
-  x3 <- x3+
-    geom_point(data=x1[nx==i],aes(b2,b3,color=iifac),size=2)
-  if(i>2) {
-    x3 <- x3+geom_line(data=x1[nx==i],aes(b2,b3),color=gg1(10)[i])
-  }
+
+for(i in seq_along(nxx)) { #equiprice
+  x4 <- x4+
+    geom_point( #black triangles
+      data=x1[.N:1]%>%
+        .[nx==nxx[i]],
+      size=.4,
+      shape=25
+    )+
+    geom_path( #dotted line
+      data=x1[.N:1][nx==nxx[i]],
+      linetype='dotted',
+      size=.3)
 }
-x <- x3+
-  geom_label(data=x1[ii==32][,leg:=paste0('des=',round(des,1))],aes(label=leg),size=labelsize,color=gg1(10)[8],hjust=1.1,vjust=0)+
-  geom_label(data=x1[ii==36][,leg:=paste0('des=+',round(des,1))],aes(label=leg),size=labelsize,color=gg1(10)[8],hjust=-0.1,vjust=1)+
-  ylim(c(-.025,.03))+xlim(c(-.045,.04))+
+x4 <- x4+ #region lines colour keyed
+  geom_point(
+    data=x2[n0%in%n0x],
+    size=.75,
+    shape=22,
+    aes(color=nxfac,fill=nxfac)
+  )+
+  geom_path(
+    data=x2[n0%in%n0x],
+    aes(color=nxfac),
+    size=.6
+  )
+x4 <- x4+ 
+  geom_point(#low des red triangles
+    data=x1[col==-2],
+    size=1,
+    shape=25,
+    color='red',
+    fill='red'
+  )+
+  geom_point(#high des blue triangles
+    data=x1[col==+2],
+    size=1,
+    shape=25,
+    color='blue',
+    fill='blue'
+  )
+x4 <- x4+ 
+  geom_text_repel( #red DES label
+    data=x1[lab=='DES<0'],
+    aes(label=lab),
+    size=3,
+    color='red',
+    direction='y',
+    nudge_y=.005,
+    min.segment.length=.001
+  )+
+  geom_text_repel( #blue des label
+    data=x1[lab=='DES>0'],
+    aes(label=lab),
+    size=3,
+    color='blue',
+    direction='y',
+    nudge_y=-.005,
+    min.segment.length=.001
+  )+
+  geom_text( #region color labels, not color legend 
+    data=x3,
+    aes(label=lab,color=nxfac),
+    size=3,
+    nudge_x=.002,
+    nudge_y=.0027,
+    hjust=0)
+scm <- setNames(gg1(10)[c(1,3,5,7,8)],levels(x2[,nxfac])[rev(c(1,2,4,6,10))])
+x <- x4+
+  ylim(c(-.02,.035))+xlim(c(-.04,.045))+
   theme(text=element_text(size=7))+
-  scale_color_manual(values=x2)+
+  scale_fill_manual(values=rev(scm))+
+  scale_color_manual(values=rev(scm))+
   xlab(bquote(beta[2]))+ylab(bquote(beta[3]))+
   theme_bw() +
   theme(
@@ -312,14 +384,15 @@ x <- x3+
     panel.border = element_blank(),
     panel.background = element_blank(),
     text=element_text(size=7,face='plain'),
+    legend.position='none',
     axis.line.y.left=element_line(size=.1),
     axis.line.x.bottom=element_line(size=.1),
-    axis.text=element_text(size=6,face = "plain"),
-    legend.position='none')#+
+    axis.text=element_text(size=6,face = "plain")
+  )
 print(x)
 ggsave('rplot007.tif', x, device = "tiff", dpi =1000, width=3543, height=2400, units='px')
 
-#var 8
+#var 8-------------------------------
 nahead=20
 x4 <- predict(x161$var0,n.ahead=nahead)
 x5 <- data.table(z=x161$z[,1],type='hist')[,ii:=1:.N]
@@ -352,7 +425,3 @@ x <- ggplot(x5,aes(ii,z))+
 print(x)
 ggsave('rplot008.tif', x, device = "tiff", dpi =1000, width=3543, height=2400, units='px')
 
-#nuts 9 - needs work
-ggplot(x178[n0%in%c(1,5,9,8,7)],aes(b2,b3,color=col))+geom_point()+geom_path()
-
-x3+geom_path(data=x178[n0%in%c(1,5,9,8,7)],aes(b2,b3,color=col))
