@@ -748,7 +748,7 @@ function(
     geo=geo1[,.(rc6=rcx,qai,nx)],
     des=x150,
     pca=x133,
-    nxx=2:9,#nx to split
+    nxx=geo[,unique(nx)],#2:9,#nx to split
     parx=F#geo[,4<length(unique(nx))] #dorib=F now so no need for //
 ) { 
   x1 <- lapply(
