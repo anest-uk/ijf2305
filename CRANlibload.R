@@ -3,13 +3,11 @@ c(
 'colorspace',
 'data.table',
 'devtools',   
-'fasttime', #?
 'ggplot2',    
 'ggrepel',    
 'lubridate',
 'magrittr',   
-'plotly',   #?   
-'quadprog', #?
+'plotly',  
 'scales',
 'signal',     
 'snowfall',   
