@@ -1,18 +1,6 @@
 #dependencies: see .Rprofile for CRAN + local library c-cleanlib
 #working dir should be same as 'public update' to load objects from file
 #outputs are tif 
-# nn <- c( #prepped in 'public update'
-#   sol1='x103',
-#   sol2='x133',
-#   sol3='x141',
-#   rib3='x142',
-#   sol4='x151',
-#   nuts='x153',
-#   var='x161',
-#   nutq='x178'
-# )
-# load('xnnn.rdata')
-# 
 nn <- c( #objects are labelled calc/tab/fig according to their intended use
   sol1='x103',#g t
   pvrc='x121',#  t

@@ -1,5 +1,5 @@
 #----------------------------------------------------------solution 1 rc3/annual 
-geo0 = #104 areas
+geo0 = #all E&W 104 areas (exclude only tweedside)
   c("AL-", "B--", "BA-", "BB-", "BD-", "BH-", "BL-", "BN-", "BR-", 
     "BS-", "CA-", "CB-", "CF-", "CH-", "CM-", "CO-", "CR-", "CT-", 
     "CV-", "CW-", "DA-", "DE-", "DH-", "DL-", "DN-", "DT-", "DY-", 
@@ -21,31 +21,31 @@ x101= #annual
   )+
   c(
     rep(0,14),
-    59, #extend 2008 2 months (GFC end)
+    59, #extend 2008 2 months to 2009-02-28 (GFC end)
     rep(0,13),
-    31) #extend 2022
+    31) #extend 2022 to 2023-01-31
 cocomkd('ver001\\07pra')
 sfInit(par=T,cpus=ncpus())#//parallel
-x102 <- #---PRA - annual
+x102 <- #---PRA Prepare Regression Accrual write to rc9.csv - annual 
   sfLapply(
     geo0[,unique(nx)],
     f230309a,
-    geo=geo0, #partition task on rc3
-    dfn=x101, #annual
-    steprip=c(steprip='ver001\\03rip'), #in
-    steppra=c(steppra='ver001\\07pra')  #out ver001=annual
+    geo=geo0, #---geo = spatial bin definition; geo0=partition task on rc3
+    dfn=x101, #---dfn = date 'from nothing'; x101=annual 
+    steprip=c(steprip='ver001\\03rip'), #---rip = return(id) public, csv folder
+    steppra=c(steppra='ver001\\07pra')  #output csv folder ver001=annual
   )
-sfStop()#//
+sfStop()     #//
 stopifnot(length(dir('ver001\\07pra'))>8e3) #quick/approx size check
-x103a <- #rc3/annual solve
+x103a <-    #rc3/annual solve
   f230311b( #//parallel
-    geo=geo0,
-    steppra='ver001\\07pra',
+    geo=geo0, #solve on rc3 bins
+    steppra='ver001\\07pra', #annual see x102
     stepsip='ver001\\02sip'
   )#//
-x103 <- x103a[c('ses','geo')] #x103a is large with BSO for MSE
+x103 <- x103a[c('ses','geo')] #x103a is large with BSO for MSE so reduce
 #---------------------------------------------------------------------prep - DRC
-dfnx1 <- c( 
+dfnx1 <- c( #Delta R Constant dates partition time by equal z23 variance
   "1994-12-31",
   "1996-07-14","1997-01-17","1997-06-23","1998-01-27","1998-10-22",
   "1999-08-06","1999-12-03","2000-01-31","2001-10-12","2002-06-25",
@@ -56,7 +56,7 @@ dfnx1 <- c(
   "2014-11-03","2015-07-23","2016-01-23","2016-04-10","2016-06-20",
   "2017-08-22","2018-04-18","2020-11-16","2021-09-20","2023-01-31"
 )%>%as.Date(.) 
-cocomkd('ver002\\07pra')
+cocomkd('ver002\\07pra') #ver002
 sfInit(par=T,cpus=ncpus())#//parallel
 x111 <- #PRA - DRC
   sfLapply(
@@ -67,29 +67,61 @@ x111 <- #PRA - DRC
     steprip=c(steprip='ver001\\03rip'), #in
     steppra=c(steppra='ver002\\07pra')  #out ver002=drc
   )
-sfStop()#//
-#----------------------------------------------------------------------prep - PV
-x121 <- x103$ses$soar%>%
-  .[,.(nid,m2,pv,ppm2,rcx=rc9)]%>%
-  rbind(.,.[,.(nid=sum(nid),m2=sum(m2),pv=sum(pv),ppm2=sum(pv)/sum(m2)),.(rcx=substr(rcx,1,6))])%>%
-  rbind(.,.[,.(nid=sum(nid),m2=sum(m2),pv=sum(pv),ppm2=sum(pv)/sum(m2)),.(rcx=substr(rcx,1,3))])
-#---------------------------------------------------------solution 2 cardinal/DRC
-x131 <- #GEO.cardinal
+sfStop() #//
+#---------------------------------------------------------------aggregation - PV
+x121 <- x103$ses$soar%>% #soar: SOlve+reprice/Aggregate/Rank
+  .[,.(
+    nid,
+    m2,
+    pv,
+    ppm2,
+    rcx=rc9 #---------------------rc9=sector
+    )]%>%
+  rbind(.,
+        .[,.(
+          nid=sum(nid),
+          m2=sum(m2),
+          pv=sum(pv),
+          ppm2=sum(pv)/sum(m2)
+          ),
+          .(
+            rcx=substr(rcx,1,6) #-rc6=district
+            )])%>%
+  rbind(.,
+        .[,.(
+          nid=sum(nid),
+          m2=sum(m2),
+          pv=sum(pv),
+          ppm2=sum(pv)/sum(m2)
+          ),
+          .(
+            rcx=substr(rcx,1,3) #--rc3=area
+            )]
+        )
+#--------------------------------------------------------solution 2 cardinal/DRC
+x131 <- #GEO cardinal = 10 zones
   structure(
     list(
       rc9 = 
-        c("TS-", "L--", "S--", "LS-", "M--", "B--", "BS-",#7 metro areas low to mid
-          "AL-", "HP-10-", "HP-16-", "HP-23-",#AL + near-price neighbours in HP
+        c("TS-", "L--", "S--", "LS-", "M--", "B--", "BS-",#7 metro areas 
+          "AL-", "HP-10-", "HP-16-", "HP-23-",    #AL + near-price-neighbour HP
           "HP-4--", "HP-6--","HP-7--", "HP-8--", "HP-9--",
-          "N--",#N for London
-          "EC-3R-", "EC-4A-", "N--1C-", "SW-10-", "SW-1A-", "SW-1E-", "SW-1H-",  
-          "SW-1P-", "SW-1W-", "SW-1X-", "SW-1Y-", "SW-3--", "SW-5--", "SW-7--", 
-          "W--11-", "W--1B-", "W--1D-", "W--1F-", "W--1G-", "W--1H-", "W--1J-", 
-          "W--1K-", "W--1S-", "W--1T-", "W--1U-", "W--1W-", "W--8--", "WC-2A-", 
-          "WC-2B-", "WC-2E-", "WC-2H-", "WC-2N-", "WC-2R-"),#top price districts
-      nx = c(1, 2, 3, 4, 5, 6, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 10, 10, 10, 10, 
-             10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 
-             10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10)
+          "N--",                                  #N for non-prime London
+          "EC-3R-", "EC-4A-", "N--1C-", "SW-10-", #top price PCL districts
+          "SW-1A-", "SW-1E-", "SW-1H-", "SW-1P-", 
+          "SW-1W-", "SW-1X-", "SW-1Y-", "SW-3--", 
+          "SW-5--", "SW-7--", "W--11-", "W--1B-", 
+          "W--1D-", "W--1F-", "W--1G-", "W--1H-", 
+          "W--1J-", "W--1K-", "W--1S-", "W--1T-", 
+          "W--1U-", "W--1W-", "W--8--", "WC-2A-", 
+          "WC-2B-", "WC-2E-", "WC-2H-", "WC-2N-", 
+          "WC-2R-"),
+      nx = c(1, 2, 3, 4, 5, 6, 7,                #7 metro areas
+             8, 8, 8, 8, 8, 8, 8, 8, 8,          #AL + HP
+             9,                                  #N
+             10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, #PCL
+             10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,  
+             10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10)
     ), 
     class = "data.frame", 
     row.names = c(NA, -50L))%>% data.table(.)
@@ -103,8 +135,9 @@ x133 <- #pca
   x132$ses$estdt[,.(date=date1,lab=rc3,xdot)]%>%
   dcast(.,date~lab,value.var='xdot')%>%
   pcaest(.)
-#--------------------------------------------------------------solution 3 DTC/DRC
-breaks <- c(10, 541, 824, 1272, 1631, 2024, 2113, 2189, 2253) #rc6(ppm2) binbreaks
+#-------------------------------------------------------------solution 3 DTC/DRC
+breaks <- #DTC Delta Theta Constant: define bins by breakpoints on £/m2 spectrum
+  c(10,541,824,1272,1631,2024,2113,2189,2253) #rc6(ppm2) binbreaks
 geo1 <- x121%>% 
   .[nchar(rcx)==6]%>%
   .[order(ppm2)]%>%
@@ -127,12 +160,12 @@ x142 <- #RIB regress in beta(x,z),theta
     pcax=x133, #regressor z
     kbar=3
   )
-f230506c( #display panel
+f230506c( #display panel / qc check
   sol1=x103,
   drc=x141,
   theta=x142$beta,
   pcax=x133)
-#--------------------------------------------------------------solution 4 DES/DRC
+#-------------------------------------------------------------solution 4 DES/DRC
 source('eennx.R') #coordinates
 ndesx <- 3:6 #four to split
 eennx <- as.data.table(eennx)[,.(rc6=rc,eex,nnx)]
@@ -141,25 +174,24 @@ x150 <-  #des prep for all rc6
     soar=x121,
     geo=geo1[,.(rc6=rcx,qai,nx)],
     xso=eennx)
-x0 <- #design keyed on nx=2:9,dir=all/lo/hi,type=all/half/full
+x0 <- #heuristic design of DES tilt subject to minimal ppm2 tilt 
   f230516b(
     geo=geo1[nx%in%ndesx,.(rc6=rcx,qai,nx)],
     des=x150,
     pca=x133)
-x1 <- #ndtc was nx=2:9;qq=1:5 was dir,type;rc6
+x1 <- #select
   unique(x0[,.(dir,type)])%>%
   .[,qq:=c(3,4,2,5,1)]%>%
   .[order(qq)]%>%
   .[x0,on=c(dir='dir',type='type')]%>%
   .[,.(ndtc=nx,qq,rc6)]
-x154 <- #ndtc=2:9,qq=1:5,ndes=1:40 single key ndes
+x154 <- #ndtc=3:6,qq=1:5 for single key ndes
   x1[,.(ndtc,qq)]%>%
   unique(.)%>%
   .[,.(ndtc,qq,ndes=1:.N)]
-geo4 <- #geo for des split
+geo4 <- #geo from des tilt
   x1[x154,on=c(ndtc='ndtc',qq='qq')]%>%
   .[,.(rc6,ndes)]
-#save('geo4',file='geo4.rdata')
 x151a <- #DTC/DRC solve 
   f230311b(#//parallel
     geo=geo4[,.(rc9=rc6,nx=ndes,lab=labxnnn(ndes))],
@@ -167,15 +199,14 @@ x151a <- #DTC/DRC solve
     stepsip='ver001\\02sip'
   )#//
 x151 <- x151a[c('ses','geo')]
-x152 <- #RIB(ndes) no longer directly used
+x153 <- #RIB keyed on ndtc,qq,ndes
   f230506b( 
     nxx=geo4[,sort(unique(ndes))],
     estdtx=x151$ses$estdt, #regressand x
     pcax=x133, #regressor z
     kbar=3
-  )
-x153 <- #RIB keyed on ndtc,qq,ndes
-  x154[x152$beta,on=c(ndes='nx')]
+  )[['beta']]%>%
+  x154[.,on=c(ndes='nx')]
 #----------------------------------------------------------------------------VAR
 x2 <- x133%>%
   pcaz(.)%>%
@@ -203,7 +234,7 @@ x161 <- list(
 rmifgl('geo')
 source('geo2.r') #NUTS table derives from https://github.com/ygalanak/UKpc2NUTS
 x1 <- data.table(geo)[,.(rc6,NUTS=ltr)]
-x1[,sum(duplicated(rc6))/.N] #.0745 overlaps in rc6-nuts relation 
+x1[,sum(duplicated(rc6))/.N] #.0745 duplicate rc6-nuts relation one:many
 geo2 <- 
   x1[order(NUTS)]%>%
   .[,.SD[1,],rc6]%>% #greedy/alphabetic allocation of duplicate rc6
@@ -217,7 +248,7 @@ x171 <- #NUTS/annual solve
     steppra='ver001\\07pra',#annual
     stepsip='ver001\\02sip'
   )
-#------------------------------------------------------------solution 6 DTC/ANN
+#-------------------------------------------------------------solution 6 DTC/ANN
 x172 <- #DTC/annual solve
   f230311b( 
     geo=geo1[,.(rc9=rcx,nx,lab=labxnnn(nx))], #DTC
@@ -269,7 +300,7 @@ structure(list(X1 = c("L", "K", "J", "I", "H", "G", "F", "E",
 "D", "C"), X2 = c("Wales", "South West", "South East", "London", 
 "East of England", "West Midlands", "East Midlands", "Yorkshire and Humber", 
 "North West", "North East")), class = "data.frame", row.names = c(NA, 
--10L))%>%data.table(.)%>%setnames(.,c('code','name'))
+-10L))%>%data.table(.)%>%setnames(.,c('code','name'))%>%.[c(4,3,2,6,10)] #add select 230522
 p.theta.lin <-  #lppm2(theta) piecewise linear trained on DTC
   geo1%>% #DTC
   .[x121,on=c(rcx='rcx'),nomatch=NULL]%>% #Soar
@@ -326,43 +357,18 @@ nn <- c( #objects are labelled calc/tab/fig according to their intended use
   nuts5='x178',#g
   rib6='x179'
 )
-#individual objects quite fast
-for(i in seq_along(nn)) {
+for(i in seq_along(nn)) {#individual objects save: quite fast
   save(list=nn[i],file=paste0(nn[i],'.Rdata'))
 }
-for(i in seq_along(nn)) {
-  load(file=paste0(nn[i],'.Rdata'))
+if(F) { #this is acceptable speed but should not be needed 
+  for(i in seq_along(nn)) {
+    load(file=paste0(nn[i],'.Rdata'))
+  }
 }
-#v v slow!
-if(F) {save.image(file=paste0(format(Sys.time(),'%y%m%d%H%M'),'.Rdata'))}
-
-
-# rib4='x152',
-# nutsdrc='x174', 
-# nutsrib='x176', 
-# nutssol='x177', 
-
-#7 required for g
-# x103
-# x133
-# x141
-# x142
-# x153
-# x161
-# x178
-
-# nn <- c( #prepped in 'public update'
-#   sol1='x103',
-#   pvrc='x121',
-#   sol2='x132',
-#   sol2='x133',
-#   sol3='x141',
-#   rib3='x142',
-#   sol4='x151',
-#   var='x161'
-# )
-
-
-
-save(list=nn,file='xnnn.rdata') #for tab, graphic; option to load this file
-load('xnnn.rdata')
+if(F) {#use single files instead
+  save(list=nn,file='xnnn.rdata') #for tab, graphic; option to load this file
+  load('xnnn.rdata')
+}
+if(F) {#v v slow! do not use
+  save.image(file=paste0(format(Sys.time(),'%y%m%d%H%M'),'.Rdata'))
+}
