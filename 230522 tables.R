@@ -157,4 +157,10 @@ print('table 7---------------VAR')
 print(x72[])
 fwrite(x72,'table7.csv')
 #------------------end table 7
-
+#table 8 - asset pricing on NUTS
+x81 <- x176[c(1,2,4,5,10)]
+print('table 8---------------NUTS pricing')
+print(x81[])
+fwrite(x81,'table8.csv')
+x176[,cor(log(ppm2),log(phat))]
+x176[,summary(lm(log(ppm2)~log(phat)))]
