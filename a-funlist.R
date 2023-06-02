@@ -18,6 +18,9 @@ f230506c #
 f230508a #
 f230516a #
 f230516b #
+f230531a #
+f230601a #
+f230601b #
 grepstring #
 labxnnn #
 metro #
@@ -26,6 +29,7 @@ multiplot #
 ncpus #
 parsepcode #
 pcab #
+pcadrc #
 pcaest #
 pcah #
 pcajscale #
