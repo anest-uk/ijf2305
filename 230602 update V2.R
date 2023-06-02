@@ -69,35 +69,9 @@ x111 <- #PRA - DRC
   )
 sfStop() #//
 #---------------------------------------------------------------aggregation - PV
-x121 <- x103$ses$soar%>% #soar: SOlve+reprice/Aggregate/Rank
-  .[,.(
-    nid,
-    m2,
-    pv,
-    ppm2,
-    rcx=rc9 #---------------------rc9=sector
-    )]%>%
-  rbind(.,
-        .[,.(
-          nid=sum(nid),
-          m2=sum(m2),
-          pv=sum(pv),
-          ppm2=sum(pv)/sum(m2)
-          ),
-          .(
-            rcx=substr(rcx,1,6) #-rc6=district
-            )])%>%
-  rbind(.,
-        .[,.(
-          nid=sum(nid),
-          m2=sum(m2),
-          pv=sum(pv),
-          ppm2=sum(pv)/sum(m2)
-          ),
-          .(
-            rcx=substr(rcx,1,3) #--rc3=area
-            )]
-        )
+x121 <- f230602a(
+  fis=x103 #solution 1 used for pv
+  )
 #--------------------------------------------------------solution 2 cardinal/DRC
 x131 <- #GEO cardinal = 10 zones
   structure(

@@ -62,7 +62,7 @@ fwrite(x33,'table3.csv')
 x45 <- f230601b(
   fis=x141,
   rib=x142,
-  soar=x121)
+  pva=x121)
 print('table 4---------------nx properties')
 print(x45)
 fwrite(x45,'table4.csv')

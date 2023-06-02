@@ -602,19 +602,25 @@ function(
   }
   x4 <- list(
   estdt=rbindlist(x1),
-  beta=rbindlist(x2)[,dt:=c(NA,diff(theta))]#this may not be meaningful
+  pca=pcax,
+  beta=rbindlist(x2)[,dt:=c(NA,diff(theta))]#diff may not be meaningful
   )
   x4
 }
 f230506c <-
 function(    
-  sol1=x04,
-  drc=x16, #has ses and geo
-  theta=x18$beta, #has b2 b3 theta
-  pcax=x17
+  sol1=x103, #fis 230311b  'solution 1' 
+  drc=x141, #fis 230311b that generated rib
+  theta=x142$beta,  #rib 230506b
+  pcax=x133 #pca pcaest
 ) {
   ll <- as.list(NULL)
-  x1 <- copy(drc$ses$estdt)[,date:=date1][nx%in%round(seq(from=1,to=max(nx),length.out=4))][,ii:=1:.N,nx][,col:=as.factor(rc3)][,lab:=rc3]
+  x1 <- copy(drc$ses$estdt)%>%
+    .[,date:=date1]%>%
+    .[nx%in%round(seq(from=1,to=max(nx),length.out=4))]%>%
+    .[,ii:=1:.N,nx]%>%
+    .[,col:=as.factor(rc3)]%>%
+    .[,lab:=rc3]
   ll[[1]] <- #x(bin)
     ggplot(x1,aes(ii,x,color=col))+
     theme(legend.position="none")+
@@ -637,15 +643,12 @@ function(
     geom_line(size=.3)+
     geom_point(size=.2)+
     xlab('timebin')+ylab('z')
-  #r23(m)
   x6 <- data.table(apply(x3^2,1,sum))%>%
     .[,ii:=1:.N]
   ll[[3]] <- ggplot(x6,aes(ii,V1))+geom_bar(stat='identity')+
     xlab('timebin')+ylab('var23')
-  #thetabeta(n)
   ll[[4]] <- ggplot(theta,aes(nx,dt))+geom_bar(stat='identity')+
     scale_x_reverse(breaks=1:10)
-  #betan, betai
   x1 <- theta
   rad <- x1[,ceiling(max((b2^2+b3^2)^.5)/.01)*.01]
   x2 <- x1[,.(b1,b2,b3,theta,nx,lab,col=as.factor(lab),dt,xc=rad*cos(theta),yc=rad*sin(theta),rr=round(sqrt(b2^2+b3^2)/2,3))]
@@ -711,7 +714,7 @@ function(
 }
 f230516a <-
 function(
-    soar=x121[nchar(rcx)==6][,rc6:=rcx],
+    soar=x121[nchar(rcx)==6][,rc6:=rcx],  #pva 230602a 
     geo=geo1,
     xso=eennx,
     maxrad=50,
@@ -748,62 +751,32 @@ function(
 f230516b <-
 function(
     geo=geo1[,.(rc6=rcx,qai,nx)],
-    des=x150,
-    pca=x133,
-    nxx=geo[,unique(nx)],#2:9,#nx to split
-    parx=F#geo[,4<length(unique(nx))] #dorib=F now so no need for //
-) { 
-  x1 <- lapply(
+    des=x150, #des 230516a
+    pca=x133, #pca pcaest
+    nxx=geo[,unique(nx)]#,#nx to split, in reality 2:9 
+  #  parx=F
+  ) { 
+    x1 <- lapply(
       as.list(nxx), 
       f230417c,
       geo=geo,
       des=des,
       pca=pca
-  )
-# K  sfInit(par=parx,cpus=ncpus())
-#   x1 <- 
-#     sfLapply(
-#       as.list(2:9), #nx to split
-#       f230417c,
-#       geo=geo,
-#       des=des,
-#       pca=x133
-#     )
-#   sfStop()
-#   #xbeta <- as.list(NULL)
-  # xgeo <- as.list(NULL)
-  # for(i in seq_along(x1)) {
-  #   #xbeta[[i]] <- x1[[i]][['beta']][order(des)][,desx:=-2:2]
-  #   xgeo[[i]] <- x1[[i]][['geo']]
-  # }
-  # x2 <- rbindlist(xgeo) 
-  # x3 <- rbind(
-  #   rbindlist(xbeta)[,.(b2,b3,nx,des,desx,ppm2)]#,
-  #   #x142$beta[,.(b2,b3,nx,des=0,desx=0,ppm2=NA)]
-  # )[,col:=reorder(as.factor(desx),-desx)]%>%
-  #   .[,nxfac:=as.factor(nx)]%>%
-  #   .[order(nx,desx)]%>%
-  #   .[,unit:=as.factor(nx)]
-  # x4 <- list(
-  #   geo=x2#,
-  #   #beta=x3  
-  # )
-  #x4
-  x2 <- rbindlist(x1)
-  x2
-}
+    )
+    x2 <- rbindlist(x1)
+    x2
+  }
 f230531a <-
 function(
-    ses=x103$ses,
-    x1=x121 #pv(rcx)
+    ses=x103$ses #fis 230311b
 ){
   x2 <- #join parts of 311b for stats
-    ses$estdt%>%#[x10[,.(rc3)],on=c(rc3='rc3')]%>%
+    ses$estdt%>%
     .[ses$stat[type=='all',.(nx,rsq,nsam)],on=c(nx='nx'),allow=T,nomatch=NULL]
-  x3 <- #'beta1' capm style from x2
+  x3 <- #'beta1' 
     x2[,.(date=date1,lab=rc3,xdot)]%>%
     dcast(.,date~lab,value.var='xdot')%>%
-    pcaest(.,rotate=T)%>%#do need to rotate for sensible 'rewarded' beta
+    pcaest(.,rotate=T)%>%#rotate for 'rewarded' beta
     pcajscale(beta=T)%>% #capm style
     pcab(.)%>%
     .[,1,drop=F]%>%
@@ -816,20 +789,18 @@ function(
       rho=acf(xdot,lag.max=1,plot=F)$acf[2],
       rsqraw=rsq[1],
       dd=min(xdot)
-    ),nx]%>% #tidy and join fundamentals
-    #apply(.,round,digits=3)%>%
+    ),nx]%>% #join fundamentals
     as.data.table(.)%>%
     .[unique(x2[,.(nx,lab=rc3)]),on=c(nx='nx')]%>%
     .[x3,on=c(lab='rc3')]%>%
     .[order(nx),.(rc3=lab,mean,sigma,rho,dd,beta,rsqraw)]%>%
-    #x1[,.(ppm2=round(ppm2,-1),rcx)][.,on=c(rcx='rc3')]%>%
-    .[,.(rcx=rc3,mean,sigma,rho,dd,beta,rsqraw)]#,ppm2
+    .[,.(rcx=rc3,mean,sigma,rho,dd,beta,rsqraw)]
   x4
 }
 f230601a <-
 function(
-    fis=x141, #ses geo tss 
-    rib=x142 
+    fis=x141, #fis 230311b that generated rib
+    rib=x142  #rib 230506b
 ){
   fis$tss[rib$beta,on=c(rcx='lab')]%>%
     .[,.(
@@ -849,17 +820,17 @@ function(
 }
 f230601b <-
 function(
-    fis=x141, #fis that generated rib
-    rib=x142, #rib
-    soar=x121,#soar sol1
+    fis=x141, #fis 230311b that generated rib
+    rib=x142, #rib 230506b
+    pva=x121, #pva 230602a 
     x1=f230601a(fis=fis,rib=rib)
 ){
   geo <- fis$geo #solution 3 DTC/DRC
-  ses <- fis$ses #
+  ses <- fis$ses 
   tss <- fis$tss
   estdt <- ses$stat[type=='all']%>%
     .[ses$estdt,on=c(nx='nx')]
-  x2 <- soar[geo,on=c(rcx='rc9')]%>%
+  x2 <- pva[geo,on=c(rcx='rc9')]%>%
     .[,.(ppm2=sum(pv)/sum(m2),ppm2min=min(ppm2),ppm2max=max(ppm2),nid=sum(nid)),.(nx,lab)]%>%
     .[,nidfrac:=round(nid/sum(nid),4)]
   x3 <- x2[x1,on=c(nx='nx')]
@@ -880,6 +851,42 @@ function(
         dthetab=dthetab
       )]
   x4
+}
+f230602a <-
+function(
+    fis=x103 #fis 230311b  'solution 1' 
+) {
+  x1 <- fis$ses$soar%>% #soar: SOlve+reprice/Aggregate/Rank
+  .[,.(
+    nid,
+    m2,
+    pv,
+    ppm2,
+    rcx=rc9 #---------------------rc9=sector
+  )]%>%
+  rbind(.,
+        .[,.(
+          nid=sum(nid),
+          m2=sum(m2),
+          pv=sum(pv),
+          ppm2=sum(pv)/sum(m2)
+        ),
+        .(
+          rcx=substr(rcx,1,6) #-rc6=district
+        )])%>%
+  rbind(.,
+        .[,.(
+          nid=sum(nid),
+          m2=sum(m2),
+          pv=sum(pv),
+          ppm2=sum(pv)/sum(m2)
+        ),
+        .(
+          rcx=substr(rcx,1,3) #--rc3=area
+        )]
+  )%>%
+  .[]
+  x1
 }
 grepstring <-
 function(x=regpcode(metro()),dollar=F,caret=T) {
