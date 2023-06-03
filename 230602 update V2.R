@@ -1,4 +1,4 @@
-#----------------------------------------------------------solution 1 rc3/annual 
+#------------------------------------------------------------------------geo rc3
 geo0 = #all E&W 104 areas (exclude only tweedside)
   c("AL-", "B--", "BA-", "BB-", "BD-", "BH-", "BL-", "BN-", "BR-", 
     "BS-", "CA-", "CB-", "CF-", "CH-", "CM-", "CO-", "CR-", "CT-", 
@@ -13,6 +13,35 @@ geo0 = #all E&W 104 areas (exclude only tweedside)
     "TR-", "TS-", "TW-", "UB-", "W--", "WA-", "WC-", "WD-", "WF-", 
     "WN-", "WR-", "WS-", "WV-", "YO-")%>%
   data.table(rc9=.,nx=seq_along(.),lab=.)
+#-------------------------------------------------------------------geo cardinal
+x131 <- #GEO cardinal = 10 zones
+  structure(
+    list(
+      rc9 = 
+        c("TS-", "L--", "S--", "LS-", "M--", "B--", "BS-",#1:7 : metro areas 
+          "AL-", "HP-10-", "HP-16-", "HP-23-",    #8 : AL&HP-peers
+          "HP-4--", "HP-6--","HP-7--", "HP-8--", "HP-9--",
+          "N--",                                  #9 : N for non-prime London
+          "EC-3R-", "EC-4A-", "N--1C-", "SW-10-", #10 : top £/m2 PCL districts
+          "SW-1A-", "SW-1E-", "SW-1H-", "SW-1P-", 
+          "SW-1W-", "SW-1X-", "SW-1Y-", "SW-3--", 
+          "SW-5--", "SW-7--", "W--11-", "W--1B-", 
+          "W--1D-", "W--1F-", "W--1G-", "W--1H-", 
+          "W--1J-", "W--1K-", "W--1S-", "W--1T-", 
+          "W--1U-", "W--1W-", "W--8--", "WC-2A-", 
+          "WC-2B-", "WC-2E-", "WC-2H-", "WC-2N-", 
+          "WC-2R-"),
+      nx = c(1, 2, 3, 4, 5, 6, 7,                #1:7 : metro areas 
+             8, 8, 8, 8, 8, 8, 8, 8, 8,          #8 : AL&HP-peers
+             9,                                  #9 : N for non-prime London
+             10, 10, 10, 10, 10, 10, 10, 10, 10, #10 : top £/m2 PCL districts
+             10, 10, 10, 10, 10, 10, 10, 10, 10, 
+             10, 10, 10, 10, 10, 10, 10, 10, 10, 
+             10, 10, 10, 10, 10, 10)
+    ), 
+    class = "data.frame", 
+    row.names = c(NA, -50L))%>% data.table(.)
+#---------------------------------------------------------------------pra annual
 x101= #annual
   seq.Date(
     from=as.Date('1994-12-31'),
@@ -26,25 +55,18 @@ x101= #annual
     31) #extend 2022 to 2023-01-31
 cocomkd('ver001\\07pra')
 sfInit(par=T,cpus=ncpus())#//parallel
-x102 <- #---PRA Prepare Regression Accrual write to rc9.csv - annual 
+x102 <- #---PRA Prepare Regression Accrual write to rc9.csv 
   sfLapply(
     geo0[,unique(nx)],
     f230309a,
-    geo=geo0, #---geo = spatial bin definition; geo0=partition task on rc3
-    dfn=x101, #---dfn = date 'from nothing'; x101=annual 
-    steprip=c(steprip='ver001\\03rip'), #---rip = return(id) public, csv folder
-    steppra=c(steppra='ver001\\07pra')  #output csv folder ver001=annual
+    geo=geo0, #geo-bin nx(rc3)
+    dfn=x101, #date-bin
+    steprip=c(steprip='ver001\\03rip'), #return csv
+    steppra=c(steppra='ver001\\07pra')  #accrual csv
   )
 sfStop()     #//
-stopifnot(length(dir('ver001\\07pra'))>8e3) #quick/approx size check
-x103a <-    #rc3/annual solve
-  f230311b( #//parallel
-    geo=geo0, #solve on rc3 bins
-    steppra='ver001\\07pra', #annual see x102
-    stepsip='ver001\\02sip'
-  )#//
-x103 <- x103a[c('ses','geo','tss')] #x103a is large with BSO for MSE so reduce
-#---------------------------------------------------------------------prep - DRC
+stopifnot(length(dir('ver001\\07pra'))>8e3) 
+#------------------------------------------------------------------------pra DRC
 dfnx1 <- c( #Delta R Constant dates partition time by equal z23 variance
   "1994-12-31",
   "1996-07-14","1997-01-17","1997-06-23","1998-01-27","1998-10-22",
@@ -68,50 +90,21 @@ x111 <- #PRA - DRC
     steppra=c(steppra='ver002\\07pra')  #out ver002=drc
   )
 sfStop() #//
-#---------------------------------------------------------------aggregation - PV
-x121 <- f230602a(
-  fis=x103 #solution 1 used for pv
-  )
-#--------------------------------------------------------solution 2 cardinal/DRC
-x131 <- #GEO cardinal = 10 zones
-  structure(
-    list(
-      rc9 = 
-        c("TS-", "L--", "S--", "LS-", "M--", "B--", "BS-",#7 metro areas 
-          "AL-", "HP-10-", "HP-16-", "HP-23-",    #AL + near-price-neighbour HP
-          "HP-4--", "HP-6--","HP-7--", "HP-8--", "HP-9--",
-          "N--",                                  #N for non-prime London
-          "EC-3R-", "EC-4A-", "N--1C-", "SW-10-", #top price PCL districts
-          "SW-1A-", "SW-1E-", "SW-1H-", "SW-1P-", 
-          "SW-1W-", "SW-1X-", "SW-1Y-", "SW-3--", 
-          "SW-5--", "SW-7--", "W--11-", "W--1B-", 
-          "W--1D-", "W--1F-", "W--1G-", "W--1H-", 
-          "W--1J-", "W--1K-", "W--1S-", "W--1T-", 
-          "W--1U-", "W--1W-", "W--8--", "WC-2A-", 
-          "WC-2B-", "WC-2E-", "WC-2H-", "WC-2N-", 
-          "WC-2R-"),
-      nx = c(1, 2, 3, 4, 5, 6, 7,                #7 metro areas
-             8, 8, 8, 8, 8, 8, 8, 8, 8,          #AL + HP
-             9,                                  #N
-             10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, #PCL
-             10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,  
-             10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10)
-    ), 
-    class = "data.frame", 
-    row.names = c(NA, -50L))%>% data.table(.)
-x132 <- #cardinal/DRC solve 
-  f230311b(#//parallel
-    geo=x131[,.(rc9,nx,lab=labxnnn(nx))],
-    steppra='ver002\\07pra',#ver002=drc
+#----------------------------------------------------------solution 1 rc3/annual 
+x103a <- #rc3/annual solve
+  f230311b( #//parallel
+    geo=geo0, #solve on rc3 bins
+    steppra='ver001\\07pra', #annual see x102
     stepsip='ver001\\02sip'
   )#//
-x133 <- #pca
-  x132$ses$estdt[,.(date=date1,lab=rc3,xdot)]%>%
-  dcast(.,date~lab,value.var='xdot')%>%
-  pcaest(.)
-#-------------------------------------------------------------solution 3 DTC/DRC
-breaks <- #DTC Delta Theta Constant: define bins by breakpoints on £/m2 spectrum
-  c(10,541,824,1272,1631,2024,2113,2189,2253) #rc6(ppm2) binbreaks
+x103 <- x103a[c('ses','geo','tss')] #x103a is large with BSO for MSE so reduce
+#---------------------------------------------------------------aggregation - PV
+x121 <-  #pva
+  f230602a(
+  fis=x103 #solution 1
+  )
+breaks <- #DTC breakpoints on ranked p
+  c(10,541,824,1272,1631,2024,2113,2189,2253) 
 geo1 <- x121%>% 
   .[nchar(rcx)==6]%>%
   .[order(ppm2)]%>%
@@ -120,68 +113,81 @@ geo1 <- x121%>%
     qai=1:.N,
     nx=apply(sapply(breaks,`<`,1:.N),1,sum)+1
     )]
-x141a <- #DTC/DRC solve 
+#--------------------------------------------------------solution 2 cardinal/DRC
+x132 <- #cardinal/DRC solve 
+  f230311b(#//parallel
+    geo=x131[,.(rc9,nx,lab=labxnnn(nx))],
+    steppra='ver002\\07pra',#ver002=drc
+    stepsip='ver001\\02sip'
+  )#//
+#----------------------------------------------------------------------------pca
+x133 <- #pca
+  x132$ses$estdt[,.(date=date1,lab=rc3,xdot)]%>%
+  dcast(.,date~lab,value.var='xdot')%>%
+  pcaest(.)
+#-------------------------------------------------------------solution 3 DTC/DRC
+x141a <- #---FIS---
   f230311b(#//parallel
     geo=geo1[,.(rc9=rcx,nx,qai,lab=labxnnn(nx))],
     steppra='ver002\\07pra',#ver002=drc
     stepsip='ver001\\02sip'
   )#//
 x141 <- x141a[c('ses','geo','tss')]
-x142 <- #RIB regress in beta(x,z),theta
+x142 <- #---RIB---
   f230506b( 
     nxx=geo1[,sort(unique(nx))],
     estdtx=x141$ses$estdt, #regressand x
     pcax=x133, #regressor z
     kbar=3
   )
-f230506c( #display panel / qc check
+f230506c( #QC display
   sol1=x103,
   drc=x141,
   theta=x142$beta,
   pcax=x133)
 #-------------------------------------------------------------solution 4 DES/DRC
+ndesx <- 3:6 #nx for DES split
 source('eennx.R') #coordinates
-ndesx <- 3:6 #four to split
-eennx <- as.data.table(eennx)[,.(rc6=rc,eex,nnx)]
-x150 <-  #des prep for all rc6
+eenn <- as.data.table(eennx)[,.(rc6=rc,eex,nnx)]
+x150 <-  #DES(rc6)
   f230516a(
     soar=x121,
     geo=geo1[,.(rc6=rcx,qai,nx)],
-    xso=eennx)
-x0 <- #heuristic design of DES tilt subject to minimal ppm2 tilt 
+    xso=eenn)
+x0 <- #DES heuristic tilt
   f230516b(
-    geo=geo1[nx%in%ndesx,.(rc6=rcx,qai,nx)],
+    geo=geo1[nx%in%ndesx,.(rc6=rcx,qai,nx)], #select nx
     des=x150,
     pca=x133)
-stopifnot(x0[type=='full'][,!any(duplicated(rc6))]) #full tilt: disjoint
-x1 <- #select
+stopifnot(x0[type=='full'][,!any(duplicated(rc6))]) #disjoint extrema
+x1 <- #add DES
   unique(x0[,.(dir,type)])%>%
-  .[,qq:=c(3,4,2,5,1)]%>%
+  .[order(type,dir),qq:=c(3,5,1,4,2)]%>% #DES rank
   .[order(qq)]%>%
   .[x0,on=c(dir='dir',type='type')]%>%
   .[,.(ndtc=nx,qq,rc6)]
-x154 <- #ndtc=3:6,qq=1:5 for single key ndes
+x154 <- #ndes(ndtc=3:6,qq=1:5) single key=ndes 1:20
   x1[,.(ndtc,qq)]%>%
   unique(.)%>%
   .[,.(ndtc,qq,ndes=1:.N)]
-geo4 <- #geo from des tilt
+geo4 <- #geo(ndes)
   x1[x154,on=c(ndtc='ndtc',qq='qq')]%>%
   .[,.(rc6,ndes)]
-x151a <- #DTC/DRC solve 
+x151a <- #---FIS---
   f230311b(#//parallel
     geo=geo4[,.(rc9=rc6,nx=ndes,lab=labxnnn(ndes))],
     steppra='ver002\\07pra',#ver002=drc
     stepsip='ver001\\02sip'
   )#//
 x151 <- x151a[c('ses','geo','tss')]
-x153 <- #RIB keyed on ndtc,qq,ndes
+x153 <- #---RIB---
   f230506b( 
     nxx=geo4[,sort(unique(ndes))],
     estdtx=x151$ses$estdt, #regressand x
     pcax=x133, #regressor z
     kbar=3
   )[['beta']]%>%
-  x154[.,on=c(ndes='nx')]
+  x154[.,on=c(ndes='nx')] #join qq,ndes
 #----------------------------------------------------------------------------VAR
 x2 <- x133%>%
   pcaz(.)%>%
@@ -208,6 +214,7 @@ x161 <- list(
 #------------------------------------------------------------solution 5 NUTS/ANN
 rmifgl('geo')
 source('geo2.r') #NUTS table derives from https://github.com/ygalanak/UKpc2NUTS
+source('nutsnames.r') #assigns nname
 x1 <- data.table(geo)[,.(rc6,NUTS=ltr)]
 x1[,sum(duplicated(rc6))/.N] #.0745 duplicate rc6-nuts relation one:many
 geo2 <- 
@@ -215,39 +222,38 @@ geo2 <-
   .[,.SD[1,],rc6]%>% #greedy/alphabetic allocation of duplicate rc6
   .[,.(rc9=rc6,nx=as.integer(as.factor(NUTS)),lab=NUTS)]%>%
   .[geo1[,.(rc9=rcx)],on=c(rc9='rc9')]
-x1[,.SD[1,],rc6]
-x1[x1[,.(rc6=unique(rc6))],on=c(rc6='rc6'),mult='first']
-x171 <- #NUTS/annual solve
+x171 <- #---FIS---
   f230311b( 
     geo=geo2, #NUTS
     steppra='ver001\\07pra',#annual
     stepsip='ver001\\02sip'
   )
 #-------------------------------------------------------------solution 6 DTC/ANN
-x172 <- #DTC/annual solve
+x172 <- #---FIS---
   f230311b( 
     geo=geo1[,.(rc9=rcx,nx,lab=labxnnn(nx))], #DTC
     steppra='ver001\\07pra',#annual
     stepsip='ver001\\02sip'
   )
+#------------------------------------------------------------sse needs an overhaul with attribution of sse and mean to components -> smaller section
 x4 <- #sse(NUTS)
   lapply(1:10,
          function(i){
-           x171[['bso']][[i]][['fit']][,data.table(sse=sum(res^2),N=.N)]
+           x171[['bso']][[i]][['fit']][,data.table(sse=sum(res^2),N=.N)] #nuts-ann
            })%>%
   rbindlist(.)%>%
   .[,geo:='NUTS']
 x5 <- #sse(DTC) = benchmark 1
   lapply(1:10,
          function(i,x){
-           x172[['bso']][[i]][['fit']][,data.table(sse=sum(res^2),N=.N)]
+           x172[['bso']][[i]][['fit']][,data.table(sse=sum(res^2),N=.N)] #dtc-ann
            })%>%
   rbindlist(.)%>%
   .[,geo:='DTC']
 x6 <- #sse(RC3) = benchmark 2
   lapply(1:104,
          function(i,x){
-           x103a[['bso']][[i]][['fit']][,data.table(sse=sum(res^2),N=.N)]
+           x103a[['bso']][[i]][['fit']][,data.table(sse=sum(res^2),N=.N)] #rc3-ann
            })%>%
   rbindlist(.)%>%
   .[,geo:='RC3']
@@ -256,55 +262,38 @@ x173 <-
   .[,.(N=sum(N),sse=sum(sse)),geo]%>%
   .[,sserel:=round(sse/sse[1],4)]
 #------------------------------------------------------------solution 7 NUTS.DRC
-x174 <- #NUTS/DRC solve
+x174 <-  #---FIS---
   f230311b( 
-    geo=geo2, #NUTSMay
+    geo=geo2, #NUTS
     steppra='ver002\\07pra',#DRC
     stepsip='ver001\\02sip'
   )[c('geo','ses')]
 
-x175 <- #NUTS RIB
+x175 <- #---RIB---
   f230506b( 
     nxx=geo2[,sort(unique(nx))], #NUTS
-    estdtx=x174$ses$estdt[,rc3:=labxnnn(nx)], #regressand x = NUTS
-    pcax=x133, #regressor z = DTC
+    estdtx=x174$ses$estdt[,rc3:=labxnnn(nx)], #NUTS
+    pcax=x133,
     kbar=3
   )
-nname <- #NUTS names
-structure(list(X1 = c("L", "K", "J", "I", "H", "G", "F", "E", 
-"D", "C"), X2 = c("Wales", "South West", "South East", "London", 
-"East of England", "West Midlands", "East Midlands", "Yorkshire and Humber", 
-"North West", "North East")), class = "data.frame", row.names = c(NA, 
--10L))%>%data.table(.)%>%setnames(.,c('code','name'))#%>%.[c(4,3,2,6,10)] #add select 230522
-p.theta.lin <-  #lppm2(theta) piecewise linear trained on DTC
-  geo1%>% #DTC
-  .[x121,on=c(rcx='rcx'),nomatch=NULL]%>% #Soar
-  .[,.(pv=sum(pv),m2=sum(m2),ppm2=sum(pv)/sum(m2)),nx]%>%
-  .[,lppm2:=log(ppm2)]%>%
-  .[,.(nx,ppm2,lppm2)]%>%
-  x142$beta[.,on=c(nx='nx')]%>% #DTC RIB
-  .[order(nx)]%>%
-  .[,approxfun(x=theta,y=lppm2)]
-x176 <- geo2%>% #NUTS beta, ppm2, inferredppm2
-  .[,.(rc6=rc9,nx,nutscode=lab)]%>%
-  nname[.,on=c(code='nutscode')]%>%
-  .[x121,on=c(rc6='rcx'),nomatch=NULL]%>% #soar
-  .[,.(m2=sum(m2),pv=sum(pv),nid=sum(nid),ppm2=sum(pv)/sum(m2)),.(code,name,nx)]%>%
-  .[x175$beta,on=c(nx='nx')]%>% #NUTS RIB
-  .[,.(name,theta,rbarsq,a,at,ppm2,phat=exp(p.theta.lin(theta)))]%>%
-  .[order(-ppm2)] #,cor(log(ppm2),log(phat))
+x176 <- #lacks unwanted lppm2(theta)
+  x121[geo2,on=c(rcx='rc9')]%>%
+  .[,.(pv=sum(pv),m2=sum(m2),ppm2=sum(pv)/sum(m2)),.(lab,nx)]%>%
+  .[x175$beta,on=c(nx='nx')]%>% #all vbles of interest now included
+  .[nname,on=c(lab='code')]%>%
+  .[,.(lab,name,theta,rbarsq,a,at,ppm2)]
 #------------------------------------------------------------solution 8 QNUT/DRC
 geo3 <- #geo-quintiles within NUTS regions
   x121[geo2,on=c(rcx='rc9')]%>%
   .[,.SD[,.( nid,m2,pv,ppm2,rcx,nx,qq=ceiling(5*cumsum(nid)/sum(nid))[])],lab]%>%
   .[,.(nid,rcx,n0=nx,qq,nx=(nx-1)*5+qq)]
-x177 <- #QNUT/DRC solve
+x177 <-  #---FIS---
   f230311b(#//parallel
     geo=geo3[,.(rc9=rcx,nx,qai=1:.N,lab=labxnnn(nx))],
     steppra='ver002\\07pra',#ver002=drc
     stepsip='ver001\\02sip'
   )[c('ses','geo','tss')]#//
-x179 <- #QNUT RIB
+x179 <- #---RIB---
   f230506b( 
     nxx=geo3[,sort(unique(nx))],
     estdtx=x177$ses$estdt, #regressand x
