@@ -125,6 +125,19 @@ x133 <- #pca
   x132$ses$estdt[,.(date=date1,lab=rc3,xdot)]%>%
   dcast(.,date~lab,value.var='xdot')%>%
   pcaest(.)
+#attribute
+#x104 <- f230603b(fis=x103a,rib=list(pca=x133,beta=pcab(x133))) #not possible due to dates
+x134a <- #---RIB--- is needed even for native
+  f230506b( 
+    #nxx=geo0[,sort(unique(nx))],
+    estdtx=x132$ses$estdt, #regressand x
+    pcax=x133, #regressor z
+    kbar=3
+  )
+x134 <- f230603b(
+  fis=x132,
+  rib=x134a) 
+#<<<<<<<<<<<<<<<<<<<<got this far, need to modify calls to f230603b to supply the correct rib not pca  - seems ok but this is not much of a test on cardinals
 #-------------------------------------------------------------solution 3 DTC/DRC
 x141a <- #---FIS---
   f230311b(#//parallel
@@ -145,6 +158,9 @@ f230506c( #QC display
   drc=x141,
   theta=x142$beta,
   pcax=x133)
+#attribute
+x143 <- f230603b(fis=x141a,rib=x142)
+
 #-------------------------------------------------------------solution 4 DES/DRC
 ndesx <- 3:6 #nx for DES split
 source('eennx.R') #coordinates
@@ -188,6 +204,17 @@ x153 <- #---RIB---
     kbar=3
   )[['beta']]%>%
   x154[.,on=c(ndes='nx')] #join qq,ndes
+x153 <- x0 <- #---RIB---
+  f230506b( 
+    nxx=geo4[,sort(unique(ndes))],
+    estdtx=x151$ses$estdt, #regressand x
+    pcax=x133, #regressor z
+    kbar=3
+  )
+x153[['beta']]<-
+  x0[['beta']]%>%
+  .[x154,on=c(nx='ndes')] #join qq,ndes
+x155 <-  f230603b(fis=x151a,rib=x153)
 #----------------------------------------------------------------------------VAR
 x2 <- x133%>%
   pcaz(.)%>%
@@ -228,6 +255,7 @@ x171 <- #---FIS---
     steppra='ver001\\07pra',#annual
     stepsip='ver001\\02sip'
   )
+#x171a <- f230603b(fis=x171,rib=) #no rib
 #-------------------------------------------------------------solution 6 DTC/ANN
 x172 <- #---FIS---
   f230311b( 
@@ -235,6 +263,7 @@ x172 <- #---FIS---
     steppra='ver001\\07pra',#annual
     stepsip='ver001\\02sip'
   )
+#x171b <- f230603b(fis=x172,pca=x133) #no rib
 #------------------------------------------------------------sse needs an overhaul with attribution of sse and mean to components -> smaller section
 x4 <- #sse(NUTS)
   lapply(1:10,
@@ -262,13 +291,13 @@ x173 <-
   .[,.(N=sum(N),sse=sum(sse)),geo]%>%
   .[,sserel:=round(sse/sse[1],4)]
 #------------------------------------------------------------solution 7 NUTS.DRC
-x174 <-  #---FIS---
+x174a <-  #---FIS---
   f230311b( 
     geo=geo2, #NUTS
     steppra='ver002\\07pra',#DRC
     stepsip='ver001\\02sip'
-  )[c('geo','ses')]
-
+  )
+x174 <- x174a[c('geo','ses')]
 x175 <- #---RIB---
   f230506b( 
     nxx=geo2[,sort(unique(nx))], #NUTS
@@ -282,17 +311,19 @@ x176 <- #lacks unwanted lppm2(theta)
   .[x175$beta,on=c(nx='nx')]%>% #all vbles of interest now included
   .[nname,on=c(lab='code')]%>%
   .[,.(lab,name,theta,rbarsq,a,at,ppm2)]
+x174a <- f230603b(fis=x174a,rib=x175)
 #------------------------------------------------------------solution 8 QNUT/DRC
 geo3 <- #geo-quintiles within NUTS regions
   x121[geo2,on=c(rcx='rc9')]%>%
   .[,.SD[,.( nid,m2,pv,ppm2,rcx,nx,qq=ceiling(5*cumsum(nid)/sum(nid))[])],lab]%>%
   .[,.(nid,rcx,n0=nx,qq,nx=(nx-1)*5+qq)]
-x177 <-  #---FIS---
+x177a <-  #---FIS---
   f230311b(#//parallel
     geo=geo3[,.(rc9=rcx,nx,qai=1:.N,lab=labxnnn(nx))],
     steppra='ver002\\07pra',#ver002=drc
     stepsip='ver001\\02sip'
-  )[c('ses','geo','tss')]#//
+  )
+x177 <- x177a[c('ses','geo','tss')]#//
 x179 <- #---RIB---
   f230506b( 
     nxx=geo3[,sort(unique(nx))],
@@ -307,6 +338,7 @@ x178 <- #QNUT summary
   .[unique(geo2[,.(nx,lab)]),on=c(n0='nx')]%>%
   .[nname,on=c(i.lab='code')]%>%
   .[,col:=as.factor(paste0(n0,name))]
+x177a <- f230603b(fis=x177a,rib=x179)
 #-----------------------------------------------------save for graphics and tabs
 nn <- c( #objects are labelled calc/tab/fig according to their intended use
   sol1='x103',#g t
@@ -321,7 +353,15 @@ nn <- c( #objects are labelled calc/tab/fig according to their intended use
   var ='x161',#g t
   nuts1='x175',
   nuts5='x178',#g
-  rib6='x179'
+  rib6='x179',
+  #'x104', #sundry summaries
+  'x134',
+  'x143',
+  'x155',
+  #'x171a',
+  #'x171b',
+  'x174a',
+  'x177a'
 )
 for(i in seq_along(nn)) {#individual objects save: quite fast
   save(list=nn[i],file=paste0(nn[i],'.Rdata'))

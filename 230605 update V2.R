@@ -18,7 +18,7 @@ x131 <- #GEO cardinal = 10 zones
   structure(
     list(
       rc9 = 
-        c("TS-", "L--", "S--", "LS-", "M--", "B--", "BS-",#1:7 : metro areas 
+        c("TS-", "L--", "S--", "M--", "LS-", "B--", "BS-",#1:7 : metro areas 
           "AL-", "HP-10-", "HP-16-", "HP-23-",    #8 : AL&HP-peers
           "HP-4--", "HP-6--","HP-7--", "HP-8--", "HP-9--",
           "N--",                                  #9 : N for non-prime London
@@ -125,26 +125,53 @@ x133 <- #pca
   x132$ses$estdt[,.(date=date1,lab=rc3,xdot)]%>%
   dcast(.,date~lab,value.var='xdot')%>%
   pcaest(.)
-#-------------------------------------------------------------solution 3 DTC/DRC
-x141a <- #---FIS---
-  f230311b(#//parallel
-    geo=geo1[,.(rc9=rcx,nx,qai,lab=labxnnn(nx))],
-    steppra='ver002\\07pra',#ver002=drc
-    stepsip='ver001\\02sip'
-  )#//
-x141 <- x141a[c('ses','geo','tss')]
-x142 <- #---RIB---
+#attribute
+#x104 <- f230603b(fis=x103a,rib=list(pca=x133,beta=pcab(x133))) #not possible due to dates
+x134a <- #---RIB--- is needed even for native
   f230506b( 
-    nxx=geo1[,sort(unique(nx))],
-    estdtx=x141$ses$estdt, #regressand x
+    #nxx=geo0[,sort(unique(nx))],
+    estdtx=x132$ses$estdt, #regressand x
     pcax=x133, #regressor z
     kbar=3
   )
+x134 <- f230603b(#attribute
+  fis=x132,
+  rib=x134a) 
+#-------------------------------------------------------------solution 3 DTC/DRC
+#allinone
+# x141a <- #---FIS---
+#   f230311b(#//parallel
+#     geo=geo1[,.(rc9=rcx,nx,qai,lab=labxnnn(nx))],
+#     steppra='ver002\\07pra',#ver002=drc
+#     stepsip='ver001\\02sip'
+#   )#//
+# x141 <- x141a[c('ses','geo','tss')]
+# x142 <- #---RIB---
+#   f230506b( 
+#     nxx=geo1[,sort(unique(nx))],
+#     estdtx=x141$ses$estdt, #regressand x
+#     pcax=x133, #regressor z
+#     kbar=3
+#   )
+# f230506c( #QC display
+#   sol1=x103,
+#   drc=x141,
+#   theta=x142$beta,
+#   pcax=x133)
+# #attribute
+# x143 <- f230603b(fis=x141a,rib=x142)
+#\allinone
+x140 <- f230605a(
+    geo=geo1[,.(rc9=rcx,nx,qai,lab=labxnnn(nx))],
+    steppra='ver002\\07pra',
+    stepsip='ver001\\02sip',
+    pcax=x133
+  )
 f230506c( #QC display
-  sol1=x103,
-  drc=x141,
-  theta=x142$beta,
-  pcax=x133)
+  sol=x140 #replace this with ppm2/soar
+  )
+
+
 #-------------------------------------------------------------solution 4 DES/DRC
 ndesx <- 3:6 #nx for DES split
 source('eennx.R') #coordinates
@@ -173,21 +200,43 @@ x154 <- #ndes(ndtc=3:6,qq=1:5) single key=ndes 1:20
 geo4 <- #geo(ndes)
   x1[x154,on=c(ndtc='ndtc',qq='qq')]%>%
   .[,.(rc6,ndes)]
-x151a <- #---FIS---
-  f230311b(#//parallel
+
+
+
+
+
+x156 <- f230605a(
     geo=geo4[,.(rc9=rc6,nx=ndes,lab=labxnnn(ndes))],
-    steppra='ver002\\07pra',#ver002=drc
-    stepsip='ver001\\02sip'
-  )#//
-x151 <- x151a[c('ses','geo','tss')]
-x153 <- #---RIB---
-  f230506b( 
-    nxx=geo4[,sort(unique(ndes))],
-    estdtx=x151$ses$estdt, #regressand x
-    pcax=x133, #regressor z
-    kbar=3
-  )[['beta']]%>%
-  x154[.,on=c(ndes='nx')] #join qq,ndes
+    steppra='ver002\\07pra',
+    stepsip='ver001\\02sip',
+    pcax=x133
+  )
+x157 <- copy(x156)
+x157$rib$beta <- x156$rib$beta[x154,on=c(nx='ndes')]
+f230506c( #QC display - looks odd but remember its des on rc=3:6!!
+  sol=x157 #replace this with ppm2/soar
+  )
+
+
+# #allinone
+# x151a <- #---FIS---
+#   f230311b(#//parallel
+#     geo=geo4[,.(rc9=rc6,nx=ndes,lab=labxnnn(ndes))],
+#     steppra='ver002\\07pra',#ver002=drc
+#     stepsip='ver001\\02sip'
+#   )#//
+# x151 <- x151a[c('ses','geo','tss')]
+# x153 <- #---RIB--- 
+#   x153copy <- #keep a copy x0 so the next step idempotent
+#   f230506b( 
+#     nxx=geo4[,sort(unique(ndes))],
+#     estdtx=x151$ses$estdt, #regressand x
+#     pcax=x133, #regressor z
+#     kbar=3
+#   )
+# x153[['beta']] <- x153copy[['beta']][x154,on=c(nx='ndes')] #join qq,ndes
+# x155 <-  f230603b(fis=x151a,rib=x153)
+#\allinone [concern about join of key above]
 #----------------------------------------------------------------------------VAR
 x2 <- x133%>%
   pcaz(.)%>%
@@ -215,19 +264,19 @@ x161 <- list(
 rmifgl('geo')
 source('geo2.r') #NUTS table derives from https://github.com/ygalanak/UKpc2NUTS
 source('nutsnames.r') #assigns nname
-x1 <- data.table(geo)[,.(rc6,NUTS=ltr)]
+x0 <- data.table(geo)[,.(rc6,NUTS=ltr)]
+x1 <- nname[,.(code,nx)][x0,on=c(code='NUTS')]
 x1[,sum(duplicated(rc6))/.N] #.0745 duplicate rc6-nuts relation one:many
 geo2 <- 
-  x1[order(NUTS)]%>%
-  .[,.SD[1,],rc6]%>% #greedy/alphabetic allocation of duplicate rc6
-  .[,.(rc9=rc6,nx=as.integer(as.factor(NUTS)),lab=NUTS)]%>%
-  .[geo1[,.(rc9=rcx)],on=c(rc9='rc9')]
+  x1[,.(rc6,nx,lab=labxnnn(nx))]%>%
+  .[geo1[,.(rc9=rcx)],on=c(rc6='rc9'),mult='first']#greedy duplicate allocation
 x171 <- #---FIS---
   f230311b( 
-    geo=geo2, #NUTS
+    geo=geo2[,.(rc9=rc6,nx,lab)], #NUTS
     steppra='ver001\\07pra',#annual
     stepsip='ver001\\02sip'
   )
+#x171a <- f230603b(fis=x171,rib=) #no rib
 #-------------------------------------------------------------solution 6 DTC/ANN
 x172 <- #---FIS---
   f230311b( 
@@ -235,6 +284,7 @@ x172 <- #---FIS---
     steppra='ver001\\07pra',#annual
     stepsip='ver001\\02sip'
   )
+#x171b <- f230603b(fis=x172,pca=x133) #no rib
 #------------------------------------------------------------sse needs an overhaul with attribution of sse and mean to components -> smaller section
 x4 <- #sse(NUTS)
   lapply(1:10,
@@ -262,43 +312,80 @@ x173 <-
   .[,.(N=sum(N),sse=sum(sse)),geo]%>%
   .[,sserel:=round(sse/sse[1],4)]
 #------------------------------------------------------------solution 7 NUTS.DRC
-x174 <-  #---FIS---
-  f230311b( 
-    geo=geo2, #NUTS
-    steppra='ver002\\07pra',#DRC
-    stepsip='ver001\\02sip'
-  )[c('geo','ses')]
-
-x175 <- #---RIB---
-  f230506b( 
-    nxx=geo2[,sort(unique(nx))], #NUTS
-    estdtx=x174$ses$estdt[,rc3:=labxnnn(nx)], #NUTS
-    pcax=x133,
-    kbar=3
+x180 <- f230605a(
+    geo=geo2[,.(rc9=rc6,nx,lab)],
+    steppra='ver002\\07pra',
+    stepsip='ver001\\02sip',
+    pcax=x133
   )
+f230506c( #QC display - looks odd but remember its des on rc=3:6!!
+  sol=x180 #replace this with ppm2/soar
+  )
+
+
+
+
+#allinone
+# x174a <-  #---FIS---
+#   f230311b( 
+#     geo=geo2[,.(rc9=rc6,nx,lab)], #NUTS
+#     steppra='ver002\\07pra',#DRC
+#     stepsip='ver001\\02sip'
+#   )
+# x174 <- x174a[c('geo','ses')]
+# x175 <- #---RIB---
+#   f230506b( 
+#     nxx=geo2[,sort(unique(nx))], #NUTS
+#     estdtx=x174$ses$estdt[,rc3:=labxnnn(nx)], #NUTS
+#     pcax=x133,
+#     kbar=3
+#   )
+# x174b <- f230603b(fis=x174a,rib=x175)
+# #\allinone
+if(F) { #maybe replace, inputs missing now
 x176 <- #lacks unwanted lppm2(theta)
   x121[geo2,on=c(rcx='rc9')]%>%
   .[,.(pv=sum(pv),m2=sum(m2),ppm2=sum(pv)/sum(m2)),.(lab,nx)]%>%
   .[x175$beta,on=c(nx='nx')]%>% #all vbles of interest now included
   .[nname,on=c(lab='code')]%>%
   .[,.(lab,name,theta,rbarsq,a,at,ppm2)]
+}
 #------------------------------------------------------------solution 8 QNUT/DRC
 geo3 <- #geo-quintiles within NUTS regions
-  x121[geo2,on=c(rcx='rc9')]%>%
+  x121[geo2,on=c(rcx='rc6')]%>%
   .[,.SD[,.( nid,m2,pv,ppm2,rcx,nx,qq=ceiling(5*cumsum(nid)/sum(nid))[])],lab]%>%
   .[,.(nid,rcx,n0=nx,qq,nx=(nx-1)*5+qq)]
-x177 <-  #---FIS---
-  f230311b(#//parallel
+
+x190 <- f230605a(
     geo=geo3[,.(rc9=rcx,nx,qai=1:.N,lab=labxnnn(nx))],
-    steppra='ver002\\07pra',#ver002=drc
-    stepsip='ver001\\02sip'
-  )[c('ses','geo','tss')]#//
-x179 <- #---RIB---
-  f230506b( 
-    nxx=geo3[,sort(unique(nx))],
-    estdtx=x177$ses$estdt, #regressand x
-    pcax=x133, #regressor z
-    kbar=3)
+    steppra='ver002\\07pra',
+    stepsip='ver001\\02sip',
+    pcax=x133
+  )
+f230506c( #QC display - looks odd but remember its des on rc=3:6!!
+  sol=x190 #replace this with ppm2/soar
+  )
+
+
+
+#allinone
+# x177a <-  #---FIS---
+#   f230311b(#//parallel
+#     geo=geo3[,.(rc9=rcx,nx,qai=1:.N,lab=labxnnn(nx))],
+#     steppra='ver002\\07pra',#ver002=drc
+#     stepsip='ver001\\02sip'
+#   )
+# x177 <- x177a[c('ses','geo','tss')]#//
+# x179 <- #---RIB---
+#   f230506b( 
+#     nxx=geo3[,sort(unique(nx))],
+#     estdtx=x177$ses$estdt, #regressand x
+#     pcax=x133, #regressor z
+#     kbar=3)
+# x177c <- f230603b(fis=x177a,rib=x179)
+# #\allinone
+
+if(F) { #maybe replace, inputs missing now
 x178 <- #QNUT summary
   geo3[,.(nx,n0,qq)]%>% #n0 is nuts-letter-factor-code; 
   unique(.)%>%
@@ -307,6 +394,7 @@ x178 <- #QNUT summary
   .[unique(geo2[,.(nx,lab)]),on=c(n0='nx')]%>%
   .[nname,on=c(i.lab='code')]%>%
   .[,col:=as.factor(paste0(n0,name))]
+}
 #-----------------------------------------------------save for graphics and tabs
 nn <- c( #objects are labelled calc/tab/fig according to their intended use
   sol1='x103',#g t
@@ -321,7 +409,15 @@ nn <- c( #objects are labelled calc/tab/fig according to their intended use
   var ='x161',#g t
   nuts1='x175',
   nuts5='x178',#g
-  rib6='x179'
+  rib6='x179',
+  #'x104', #sundry summaries
+  'x134',
+  'x143',
+  'x155',
+  #'x171a',
+  #'x171b',
+  'x174b',
+  'x177c'
 )
 for(i in seq_along(nn)) {#individual objects save: quite fast
   save(list=nn[i],file=paste0(nn[i],'.Rdata'))
