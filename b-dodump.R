@@ -1,6 +1,6 @@
 #setwd('../')
 #source('slib.r')
-setwd("c:/users/giles/anest.repo/ijf2305")
+setwd("c:/users/giles/anest.repo/anest.prod/v136")
 getwd() #ok
 dir() #ok
 source('C:/Users/Giles/anest.repo/anest.lib1/R/aa010util.r')

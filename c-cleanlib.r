@@ -677,13 +677,14 @@ function(
     x0 <- fis$ses$estdt[,.(lab=as.factor(rc3),date=date1,xdot)]
     
     # x7a <- drc$geo[sol1$ses$soar[,.(m2=sum(m2),pv=sum(pv),ppm2=round(sum(pv)/sum(m2))),.(rc6=substr(rc9,1,6))],on=c(rc9='rc6')]%>%
-    x7a <- fis$geo[pva,on=c(rc9='rcx')]%>%
+    x7a <- fis$geo[pva[nchar(rcx)==6],on=c(rc9='rcx')]%>%
       .[,.(minppm2=min(ppm2),maxppm2=max(ppm2)),nx]%>%
       .[order(nx)]
     x7 <- x7a%>%
-      .[,.(range=paste0(minppm2,'-',maxppm2)),nx]%>%
+      .[,.(range=paste0(round(minppm2),'-',round(maxppm2))),nx]%>%
       .[,paste0(paste0(range[1:4],collapse=';'),'\n',paste0(range[5:8],collapse=';'),'\n',paste0(range[8:.N],collapse=';'))]%>%
       paste0(.,' no-overlap=',x7a[,all(maxppm2[-.N]<=minppm2[-1])])
+    browser()
     annotx <- paste0(
       '\n',
       ' bins=',x0[,sum(sort(unique(date))<='2007-12-31')],",",
@@ -816,6 +817,7 @@ function(
       nx,
       lab=rcx,
       rsq=rsqraw,
+      rsq2=rsq,
       mu=mean,
       sigma,
       rho,
@@ -823,6 +825,8 @@ function(
       b1,
       b2,
       b3,
+      a,
+      at,
       thetab=theta,
       dthetab=c(NA,diff(theta)),r=sqrt(b2^2+b3^2)
       )]
@@ -853,9 +857,12 @@ function(
         nid.k=round(nid/1000),
         nid.f=round(nid/sum(nid),4),
         rsq,
+        rsq2,
         b1,
         b2,
         b3,
+        a,
+        at,
         thetab=thetab,
         dthetab=dthetab
       )]
@@ -905,8 +912,8 @@ function(
     kat=list(m=1,c=2:3),
     rib=x142
 ) {
-   # browser()
-  x0 <- fis$bso[[nx]][['fit']]
+  #browser()
+  x0 <- fis$bso[[nx]][['fit']][,buydate:=as.Date(buydate)]
   x1 <- pcaz(rib$pca)[,unlist(kat)]
   x2 <- #zdot daily rate
     x1%>%
@@ -923,14 +930,15 @@ function(
     sweep(.,STAT=as.matrix(rib$beta[,unlist(kat),with=F])[nx,,drop=T],MAR=2,FUN=`*`)%>%
     data.table(.)%>%
     .[,.(m=z1,c=z2+z3)]%>%
-    cbind(x3[,.(date)],.)
+    cbind(x3[,.(date,days)],.)
   x5 <- #join buy, sell, and collate
     x4[,.(date,mbuy=m,cbuy=c)][x0,on=c(date='buydate')]%>%
     .[,selldate:=as.Date(substr(idhash.selldate,18,30))]%>%
-    .[x4[,.(date,msell=m,csell=c)],on=c(selldate='date'),nomatch=NULL]%>%
+    .[x4[,.(date,msell=m,csell=c)],on=c(selldate='date'),nomatch=NULL]%>%#,days=selldate-date
     .[,.(
       idhash.selldate,
       buydate=date,
+      days=as.integer(selldate-date),
       fit2.m=msell-mbuy,
       fit2.c=csell-cbuy,
       fit2.r=fit-((msell-mbuy)+(csell-cbuy)),
@@ -950,7 +958,7 @@ function(
     x1 <- as.list(seq_along(fis$bso))
     x2 <- lapply(x1,f230603a,fis=fis,kat=kat,rib=rib)
     x3 <- rbindlist(x2)
-    x5 <- x3[,.(fit2.m,fit2.c,fit2.r,fit2.t,res1,tot)]
+    x5 <- x3[,.(fit2.m,fit2.c,fit2.r,fit2.t,res1,tot,days)]
     x6 <- rbind(
       as.data.table(lapply(x5,mean)),
       as.data.table(lapply(x5,sd)),
@@ -959,22 +967,36 @@ function(
     )%>%
       cbind(data.table(sum=c('mean','sd','sse','mse')),.)
   x8 <- x9 <- as.list(NULL)
-  x7 <- lm(fit2.t~fit2.m+fit2.c,x5)
-  x8[[1]] <- broom::glance(x7)%>%data.table(.)%>%.[,lm:=1]
-  x9[[1]] <- broom::tidy(x7)%>%data.table(.)%>%.[,lm:=1]
-  x7 <- lm(fit2.t~fit2.m,x5)
-  x8[[2]] <- broom::glance(x7)%>%data.table(.)%>%.[,lm:=2]
-  x9[[2]] <- broom::tidy(x7)%>%data.table(.)%>%.[,lm:=2]
-  x7 <- lm(tot~fit2.m+fit2.c,x5)
-  x8[[3]] <- broom::glance(x7)%>%data.table(.)%>%.[,lm:=3]
-  x9[[3]] <- broom::tidy(x7)%>%data.table(.)%>%.[,lm:=3]
-  x7 <- lm(tot~fit2.m,x5)
-  x8[[4]] <- broom::glance(x7)%>%data.table(.)%>%.[,lm:=4]
-  x9[[4]] <- broom::tidy(x7)%>%data.table(.)%>%.[,lm:=4]
+  ix <- 5
+  x <- lm(fit2.t~days+fit2.m+fit2.c,x5)
+  x8[[ix]] <- broom::glance(x)%>%data.table(.)%>%.[,lm:=ix]
+  x9[[ix]] <- broom::tidy(x)%>%data.table(.)%>%.[,lm:=ix]
+  ix <- ix-1
+  x <- lm(tot~days+fit2.m+fit2.c,x5)
+  x8[[ix]] <- broom::glance(x)%>%data.table(.)%>%.[,lm:=ix]
+  x9[[ix]] <- broom::tidy(x)%>%data.table(.)%>%.[,lm:=ix]
+  ix <- ix-1
+  x <- lm(tot~days+fit2.m,x5)
+  x8[[ix]] <- broom::glance(x)%>%data.table(.)%>%.[,lm:=ix]
+  x9[[ix]] <- broom::tidy(x)%>%data.table(.)%>%.[,lm:=ix]
+  ix <- ix-1
+  x <- lm(tot~fit2.m,x5)
+  x8[[ix]] <- broom::glance(x)%>%data.table(.)%>%.[,lm:=ix]
+  x9[[ix]] <- broom::tidy(x)%>%data.table(.)%>%.[,lm:=ix]
+  ix <- ix-1
+  x <- lm(tot~days,x5)
+  x8[[ix]] <- broom::glance(x)%>%data.table(.)%>%.[,lm:=ix]
+  x9[[ix]] <- broom::tidy(x)%>%data.table(.)%>%.[,lm:=ix]
+  # x <- lm(fit2.t~fit2.m+fit2.c,x5) #gets overwritten because 3 GB
+  # x8[[4]] <- broom::glance(x)%>%data.table(.)%>%.[,lm:=1]
+  # x9[[4]] <- broom::tidy(x)%>%data.table(.)%>%.[,lm:=1]
+  # x <- lm(fit2.t~fit2.m,x5)
+  # x8[[5]] <- broom::glance(x)%>%data.table(.)%>%.[,lm:=2]
+  # x9[[5]] <- broom::tidy(x)%>%data.table(.)%>%.[,lm:=2]
   x10 <- list(
     summary=x6,
-    glance=rbindlist(x8),
-    tidy=rbindlist(x9)
+    glance=rbindlist(rev(x8)),
+    tidy=rbindlist(rev(x9))
   )
   x10
 }
@@ -997,15 +1019,25 @@ function(
       pca=pcax #regressor z
     )
   x3 <- #ATT
-  f230603b(
-    fis=x1,
-    rib=x2
-  )
+    f230603b(
+      fis=x1,
+      rib=x2
+    )
+  #browser()
+  x4 <-  #COMBO
+    rbind(#all have constant labelled a0 and this tested vs xm; first lm=5 is 'special' with fit on lhs
+      cbind(x3$glance[1,.(r.squared,sigma)],as.data.table(as.list(x3$tidy[lm==5,estimate]))%>%setnames(.,c('a0','ad','am','ac'))),#fit~d,m,c
+      cbind(x3$glance[2,.(r.squared,sigma)],as.data.table(as.list(x3$tidy[lm==4,estimate]))%>%setnames(.,c('a0','ad','am','ac'))),#tot~d,m,c
+      cbind(x3$glance[3,.(r.squared,sigma)],as.data.table(as.list(c(x3$tidy[lm==3,estimate],NA)))%>%setnames(.,c('a0','ad','am','ac'))),#tot~d,m
+      cbind(x3$glance[4,.(r.squared,sigma)],as.data.table(as.list(c(x3$tidy[lm==2,estimate][1],NA,x3$tidy[lm==2,estimate][2],NA)))%>%setnames(.,c('a0','ad','am','ac'))),#tot~m
+      cbind(x3$glance[5,.(r.squared,sigma)],as.data.table(as.list(c(x3$tidy[lm==1,estimate][1:2],NA,NA)))%>%setnames(.,c('a0','ad','am','ac')))#tot~d
+    )[,ay:=ad*365.25][]
   x4 <- list(
     fis=x1[names(x1)!='bso'],#bso is big
     rib=x2,
-    att=x3
-    )
+    att=x3,
+    combo=x4
+  )
   x4
 }
 grepstring <-

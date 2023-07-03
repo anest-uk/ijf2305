@@ -32,7 +32,7 @@ x2113 <- pcadrc(x133)[,.(date=end,days,rbarsq,r)]
 print('table 2---------------drc per period')
 print(x2113) 
 fwrite(x2113,'table2.csv')
-#table 3------------------------------------------------------------------------
+#table 3------------------------------------------------------------------------this should go pre-drc and be done on annual cardinals, maybe dare to show x/z/b?  depends if it is used in the text
 soar <- x103$ses$soar
 soar <- x121
 x30 <- data.table(seq=labxnnn(1:10),rc3=cardinal)
